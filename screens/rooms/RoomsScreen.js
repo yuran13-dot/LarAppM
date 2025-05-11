@@ -4,13 +4,16 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { LarApp_db } from '../../firebaseConfig';
 import AddQuartoModal from './AddQuartoModal';
+import QuartoDetalhesModal from './RoomDetail';
 import BackButton from '../../components/BackButton';
 
-export default function QuartosScreen() {
+export default function QuartosScreen({ navigation }) {
   const [quartos, setQuartos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalVisible, setAddModalVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [selectedQuarto, setSelectedQuarto] = useState(null);
+  const [isDetailModalVisible, setDetailModalVisible] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(LarApp_db, 'quartos'), (snapshot) => {
@@ -36,23 +39,29 @@ export default function QuartosScreen() {
   const renderQuarto = ({ item }) => {
     const isOcupado = item.estado.toLowerCase() === 'ocupado';
     return (
-      <View style={[styles.card, { borderColor: isOcupado ? '#28a745' : '#ffc107' }]}> 
+      <View style={[styles.card, { borderColor: isOcupado ? '#28a745' : '#ffc107' }]}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Quarto {item.numero}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: isOcupado ? '#d4edda' : '#fff3cd' }]}> 
-            <Text style={[styles.statusText, { color: isOcupado ? '#28a745' : '#ffc107' }]}> 
+          <View style={[styles.statusBadge, { backgroundColor: isOcupado ? '#d4edda' : '#fff3cd' }]}>
+            <Text style={[styles.statusText, { color: isOcupado ? '#28a745' : '#ffc107' }]}>
               {isOcupado ? 'Ocupado' : 'Livre'}
             </Text>
           </View>
         </View>
 
-        <Text style={styles.cardSubTitle}>Individual</Text>
+        <Text style={styles.cardSubTitle}>{item.tipo}</Text>
 
         <View style={styles.iconRow}>
           <Icon name="person" size={18} color="#333" />
         </View>
 
-        <TouchableOpacity style={styles.detailButton}>
+        <TouchableOpacity
+          style={styles.detailButton}
+          onPress={() => {
+            setSelectedQuarto(item);
+            setDetailModalVisible(true);
+          }}
+        >
           <Text style={styles.detailButtonText}>Ver Detalhes</Text>
         </TouchableOpacity>
       </View>
@@ -95,12 +104,17 @@ export default function QuartosScreen() {
       )}
 
       <AddQuartoModal visible={isAddModalVisible} onClose={() => setAddModalVisible(false)} />
+      <QuartoDetalhesModal
+        visible={isDetailModalVisible}
+        onClose={() => setDetailModalVisible(false)}
+        quarto={selectedQuarto}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 15, backgroundColor: '#fff',paddingTop: "25%" },
+  container: { flex: 1, padding: 15, backgroundColor: '#fff', paddingTop: "25%" },
   headerTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 2 },
   headerSubtitle: { color: '#666', marginBottom: 15 },
   searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
