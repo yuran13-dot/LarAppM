@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Modal, Text, TextInput, TouchableOpacity, PanResponder, Animated, Platform, KeyboardAvoidingView, ScrollView, Dimensions, StyleSheet, View, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs } from 'firebase/firestore';
 import { LarApp_db } from '../../firebaseConfig';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 
 export default function AddUtenteModal({ visible, onClose }) {
   const [nome, setNome] = useState('');
@@ -14,8 +15,8 @@ export default function AddUtenteModal({ visible, onClose }) {
   const [dataNascimento, setDataNascimento] = useState('');
   const [email, setEmail] = useState('');
   const [numeroUtente, setNumeroUtente] = useState('');
-
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [listaQuartos, setListaQuartos] = useState([]);  // Quartos disponíveis
 
   const pan = useRef(new Animated.ValueXY()).current;
   const [modalHeight, setModalHeight] = useState(0);
@@ -52,16 +53,16 @@ export default function AddUtenteModal({ visible, onClose }) {
     setContacto('');
     setDataNascimento('');
     setEmail('');
-    setNumeroUtente(''); 
+    setNumeroUtente('');
   };
 
   const handleSave = async () => {
-    if (nome.trim() && quarto.trim() && contacto.trim() && dataNascimento.trim() && email.trim()) {
+    if (nome.trim() && quarto && contacto.trim() && dataNascimento.trim() && email.trim()) {
       try {
         const novoUtente = {
-          numeroUtente: numeroUtente, // já foi gerado automaticamente
+          numeroUtente,
           nome: nome.trim(),
-          quarto: quarto.trim(),
+          quarto,
           contacto: contacto.trim(),
           dataNascimento: dataNascimento.trim(),
           email: email.trim(),
@@ -82,10 +83,28 @@ export default function AddUtenteModal({ visible, onClose }) {
     }
   };
 
-  // Gera UUID sempre que o modal abre
+  const carregarQuartosLivres = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(LarApp_db, 'quartos'));
+      const quartosLivres = [];
+      querySnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.estado.toLowerCase() === 'livre') {
+          quartosLivres.push({ id: doc.id, numero: data.numero });
+        }
+      });
+      setListaQuartos(quartosLivres);
+    } catch (error) {
+      console.error('Erro ao buscar quartos:', error);
+      Alert.alert('Erro', 'Não foi possível carregar os quartos.');
+    }
+  };
+
   useEffect(() => {
     if (visible) {
       setNumeroUtente(uuidv4());
+      carregarQuartosLivres();
+
       Animated.spring(modalAnimation, {
         toValue: 1,
         useNativeDriver: true,
@@ -109,12 +128,7 @@ export default function AddUtenteModal({ visible, onClose }) {
   };
 
   return (
-    <Modal
-      animationType="none"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
+    <Modal animationType="none" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <Animated.View
           {...panResponder.panHandlers}
@@ -122,25 +136,14 @@ export default function AddUtenteModal({ visible, onClose }) {
             styles.modalContainer,
             {
               height: modalMaxHeight,
-              opacity: modalAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 1],
-              }),
+              opacity: modalAnimation.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
               transform: [
-                {
-                  scaleY: modalAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 1],
-                  }),
-                },
+                { scaleY: modalAnimation.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }) },
                 { translateY: pan.y },
               ],
             },
           ]}
-          onLayout={(e) => {
-            const { height } = e.nativeEvent.layout;
-            setModalHeight(height);
-          }}
+          onLayout={(e) => setModalHeight(e.nativeEvent.layout.height)}
         >
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Icon name="close" size={30} color="#555" />
@@ -151,26 +154,25 @@ export default function AddUtenteModal({ visible, onClose }) {
             style={{ flex: 1 }}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
           >
-            <ScrollView
-              contentContainerStyle={styles.contentContainer}
-              keyboardShouldPersistTaps="handled"
-            >
+            <ScrollView contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled">
               <Text style={styles.title}>Adicionar Utente</Text>
 
+              <TextInput style={styles.input} placeholder="Nome" value={nome} onChangeText={setNome} />
 
-              <TextInput
-                style={styles.input}
-                placeholder="Nome"
-                value={nome}
-                onChangeText={setNome}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Número do Quarto"
-                value={quarto}
-                onChangeText={setQuarto}
-                keyboardType="numeric"
-              />
+              {/* MELHORADO SELECT DE QUARTO */}
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={quarto}
+                  onValueChange={(itemValue) => setQuarto(itemValue)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Selecione um Quarto" value="" color="#999" />
+                  {listaQuartos.map(q => (
+                    <Picker.Item key={q.id} label={`Quarto ${q.numero}`} value={q.numero} />
+                  ))}
+                </Picker>
+              </View>
+
               <TextInput
                 style={styles.input}
                 placeholder="Contacto (telefone)"
@@ -179,6 +181,7 @@ export default function AddUtenteModal({ visible, onClose }) {
                 keyboardType="phone-pad"
               />
 
+              {/* MELHORADO PICKER DE DATA */}
               <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
                 <Text style={{ color: dataNascimento ? '#000' : '#999' }}>
                   {dataNascimento ? dataNascimento : 'Selecionar Data de Nascimento'}
@@ -190,7 +193,7 @@ export default function AddUtenteModal({ visible, onClose }) {
                   mode="date"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={onChangeDate}
-                  maximumDate={new Date()} // não permite data futura
+                  maximumDate={new Date()}
                 />
               )}
 
@@ -215,66 +218,14 @@ export default function AddUtenteModal({ visible, onClose }) {
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 40,
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-  },
-  contentContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  label: {
-    fontSize: 14,
-    marginBottom: 5,
-    color: '#333',
-  },
-  uuidText: {
-    fontSize: 14,
-    marginBottom: 15,
-    color: '#555',
-    backgroundColor: '#eee',
-    padding: 10,
-    borderRadius: 8,
-  },
-  input: {
-    height: 50,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 10,
-    marginBottom: 15,
-    paddingLeft: 15,
-    justifyContent: 'center',
-  },
-  saveButton: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+  modalContainer: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 40, paddingHorizontal: 20, paddingBottom: 10 },
+  contentContainer: { flexGrow: 1, justifyContent: 'center' },
+  closeButton: { position: 'absolute', top: 10, right: 10 },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  input: { height: 50, borderColor: '#ccc', borderWidth: 1, borderRadius: 10, marginBottom: 15, paddingLeft: 15, justifyContent: 'center' },
+  pickerContainer: { borderColor: '#ccc', borderWidth: 1, borderRadius: 10, marginBottom: 15 },
+  picker: { height: 50, width: '100%' },
+  saveButton: { backgroundColor: '#007bff', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 10 },
+  saveButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });

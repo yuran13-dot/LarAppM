@@ -87,8 +87,8 @@ export default function UtentesScreen({ navigation }) {
         </View>
 
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-          <Icon name="add" size={24} color="#fff" />
-        </TouchableOpacity>
+  <Icon name="person-add" size={24} color="#fff" />
+</TouchableOpacity>
       </View>
 
       {filteredUtentes.length === 0 ? (
