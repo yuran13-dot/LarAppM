@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import BackButton from '../../components/BackButton';
 import AddUtenteModal from '../utentes/addUtente';
 import EditUtenteModal from './EditUtent';
+import DeleteUtenteModal from './DeleteUser'; 
+import { collection, onSnapshot, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
+import { LarApp_db } from '../../firebaseConfig';
 
 import styles from './styles';
-
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { LarApp_db } from '../../firebaseConfig';
 
 export default function UtentesScreen({ navigation }) {
   const [search, setSearch] = useState('');
@@ -17,6 +17,7 @@ export default function UtentesScreen({ navigation }) {
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedUtente, setSelectedUtente] = useState(null);
   const [isEditModalVisible, setEditModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
   // Carregar utentes do Firestore automaticamente
   useEffect(() => {
@@ -47,23 +48,40 @@ export default function UtentesScreen({ navigation }) {
         </View>
   
         <TouchableOpacity
-  style={styles.iconAction}
-  onPress={() => {
-    setSelectedUtente(item);
-    setEditModalVisible(true);
-  }}
->
-  <Icon name="pencil-outline" size={20} color="#555" />
-</TouchableOpacity>
+          style={styles.iconAction}
+          onPress={() => {
+            setSelectedUtente(item);
+            setEditModalVisible(true);
+          }}
+        >
+          <Icon name="pencil-outline" size={20} color="#555" />
+        </TouchableOpacity>
 
-
-        <TouchableOpacity style={styles.iconAction} onPress={() => console.log('Excluir', item.id)}>
+        <TouchableOpacity
+          style={styles.iconAction}
+          onPress={() => {
+            setSelectedUtente(item);
+            setDeleteModalVisible(true); // Exibir o modal de exclusão
+          }}
+        >
           <Icon name="trash-outline" size={20} color="#d11a2a" />
         </TouchableOpacity>
       </View>
     </View>
   );
-  
+
+  // Função para excluir o utente
+  const handleDeleteUtente = async (utenteId) => {
+    try {
+      const utenteRef = doc(LarApp_db, 'utentes', utenteId);
+      await deleteDoc(utenteRef);
+     
+      setDeleteModalVisible(false); // Fechar o modal de exclusão
+    } catch (error) {
+      console.error('Erro ao excluir utente:', error);
+    
+    }
+  };
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
@@ -87,8 +105,8 @@ export default function UtentesScreen({ navigation }) {
         </View>
 
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-  <Icon name="person-add" size={24} color="#fff" />
-</TouchableOpacity>
+          <Icon name="person-add" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {filteredUtentes.length === 0 ? (
@@ -102,18 +120,23 @@ export default function UtentesScreen({ navigation }) {
         />
       )}
 
-      
       <AddUtenteModal
         visible={isModalVisible}
         onClose={() => setModalVisible(false)}
       />
       <EditUtenteModal
-  visible={isEditModalVisible}
-  onClose={() => setEditModalVisible(false)}
-  utente={selectedUtente}
-/>
-
+        visible={isEditModalVisible}
+        onClose={() => setEditModalVisible(false)}
+        utente={selectedUtente}
+      />
+      
+      {/* Modal de exclusão */}
+      <DeleteUtenteModal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        utente={selectedUtente}
+        onDeleteSuccess={() => handleDeleteUtente(selectedUtente.id)}
+      />
     </KeyboardAvoidingView>
-    
   );
 }
