@@ -39,9 +39,9 @@ export default function UtentesScreen({ navigation }) {
         <FontAwesome name="user-circle" size={40} color="#007bff" style={styles.avatar} />
         <View style={{ flex: 1 }}>
           <Text style={styles.utenteNome}>{item.nome}</Text>
-          <Text style={styles.utenteQuarto}>{item.quarto}</Text>
+          <Text style={styles.utenteQuarto}>Quarto: {item.quarto}</Text> 
         </View>
-
+  
         <TouchableOpacity style={styles.iconAction} onPress={() => console.log('Editar', item.id)}>
           <Icon name="pencil-outline" size={20} color="#555" />
         </TouchableOpacity>
@@ -51,6 +51,7 @@ export default function UtentesScreen({ navigation }) {
       </View>
     </View>
   );
+  
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
