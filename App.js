@@ -14,6 +14,8 @@ import ChatScreen from './screens/chat/ChatScreen'; // Tela de Chat
 import ProfileStack from './screens/profile/ProfileStack'; // Stack de Perfil
 import { ActivityIndicator, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import RoomsScreen from './screens/rooms/RoomsScreen';
+import HomeStack from './navigation/HomeStack'; // Stack de Home
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -41,7 +43,12 @@ function AuthStack() {
         component={ProfileScreen}
         options={{ headerShown: false }}
       />
-                                                                       
+      <Stack.Screen
+        name="RoomsScreen"
+        component={RoomsScreen}
+        options={{ headerShown: false }}
+      />
+                                                                         
     </Stack.Navigator>
   );
 }
@@ -58,7 +65,7 @@ function AppTabs() {
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={HomeStack}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="home-outline" size={size} color={color} />
@@ -92,6 +99,8 @@ function AppTabs() {
           ),
         }}
       />
+    
+      
     </Tab.Navigator>
   );
 }

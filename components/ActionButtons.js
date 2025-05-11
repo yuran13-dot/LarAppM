@@ -5,12 +5,12 @@ import Icon from "react-native-vector-icons/FontAwesome";
 const ActionButtons = ({ navigation }) => (
   <View style={styles.buttonContainer}>
     <TouchableOpacity
-      style={styles.button}
-      onPress={() => navigation.navigate("UserScreen")}
-    >
-      <Icon name="user" size={24} color="#fff" style={styles.icon} />
-      <Text style={styles.buttonText}>Utente</Text>
-    </TouchableOpacity>
+  style={styles.button}
+  onPress={() => navigation.navigate("RoomsScreen")}
+>
+  <Icon name="bed" size={24} color="#fff" style={styles.icon} />
+  <Text style={styles.buttonText}>Quartos</Text>
+</TouchableOpacity>
     <TouchableOpacity
       style={styles.button}
       onPress={() => navigation.navigate("MedicationScreen")}
