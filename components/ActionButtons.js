@@ -5,43 +5,43 @@ import Icon from "react-native-vector-icons/FontAwesome";
 const ActionButtons = ({ navigation }) => (
   <View style={styles.buttonContainer}>
     <TouchableOpacity
-  style={styles.button}
-  onPress={() => navigation.navigate("RoomsScreen")}
->
-  <Icon name="bed" size={24} color="#fff" style={styles.icon} />
-  <Text style={styles.buttonText}>Quartos</Text>
-</TouchableOpacity>
-    <TouchableOpacity
       style={styles.button}
-      onPress={() => navigation.navigate("MedicationScreen")}
+      onPress={() => navigation.navigate("UtentesScreen")}
     >
-      <Icon name="medkit" size={24} color="#fff" style={styles.icon} />
-      <Text style={styles.buttonText}>Medicação</Text>
+      <Icon name="users" size={24} color="#fff" style={styles.icon} />
+      <Text style={styles.buttonText}>Utentes</Text>
     </TouchableOpacity>
     <TouchableOpacity
       style={styles.button}
-      onPress={() => navigation.navigate("HealthScreen")}
+      onPress={() => navigation.navigate("RoomsScreen")}
     >
-      <Icon name="heartbeat" size={24} color="#fff" style={styles.icon} />
-      <Text style={styles.buttonText}>Saúde</Text>
+      <Icon name="bed" size={24} color="#fff" style={styles.icon} />
+      <Text style={styles.buttonText}>Quartos</Text>
     </TouchableOpacity>
     <TouchableOpacity
       style={styles.button}
-      onPress={() => navigation.navigate("ActivitiesScreen")}
+      onPress={() => navigation.navigate("FuncionarioScreen")}
+    >
+      <Icon name="user" size={24} color="#fff" style={styles.icon} />
+      <Text style={styles.buttonText}>Funcionários</Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.button}
+      onPress={() => navigation.navigate("RelatorioScreen")}
     >
       <Icon name="list-alt" size={24} color="#fff" style={styles.icon} />
-      <Text style={styles.buttonText}>Atividades</Text>
+      <Text style={styles.buttonText}>Relatório</Text>
     </TouchableOpacity>
   </View>
 );
 
 const styles = StyleSheet.create({
   buttonContainer: {
-    flexDirection: "row",  
-    flexWrap: "wrap",     
-    justifyContent: "space-around", 
-    marginTop: 40,         
-    paddingHorizontal: 10, 
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    marginTop: 40,
+    paddingHorizontal: 10,
   },
   button: {
     backgroundColor: "#007bff",
