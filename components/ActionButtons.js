@@ -37,11 +37,11 @@ const ActionButtons = ({ navigation }) => (
 
 const styles = StyleSheet.create({
   buttonContainer: {
-    flexDirection: "row",  // Organiza os botões em linha
-    flexWrap: "wrap",      // Permite que os botões quebrem para a linha seguinte
-    justifyContent: "space-around", // Distribui os botões com espaçamento entre eles
-    marginTop: 40,         // Adiciona uma margem superior
-    paddingHorizontal: 10, // Adiciona um pouco de espaçamento horizontal
+    flexDirection: "row",  
+    flexWrap: "wrap",     
+    justifyContent: "space-around", 
+    marginTop: 40,         
+    paddingHorizontal: 10, 
   },
   button: {
     backgroundColor: "#007bff",

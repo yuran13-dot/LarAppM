@@ -2,7 +2,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { collection, doc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, LarApp_db } from '../firebaseConfig'; // <-- IMPORTA O db CERTO
+import { auth, LarApp_db } from '../firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AuthContext = createContext();

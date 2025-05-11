@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 export default function ProfileScreen() {
-  const { user, userData } = useAuth(); // Consumindo os dados do contexto
+  const { user, userData } = useAuth(); 
   const navigation = useNavigation();
 
   const handleLogout = async () => {
@@ -39,8 +39,11 @@ export default function ProfileScreen() {
       <Text style={styles.email}>{user?.email}</Text>
 
       
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>Editar Perfil</Text>
+      <TouchableOpacity style={styles.settingsIcon} onPress={() => navigation.navigate('EditProfile')}>
+        <Text>
+          <Icon name="settings-outline" size={30} color="#007bff" />
+        </Text>
+
       </TouchableOpacity>
       <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
         <Text style={styles.buttonText}>Sair</Text>

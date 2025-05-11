@@ -8,9 +8,10 @@ import LoginScreen from './screens/login/login';
 import HomeScreen from './screens/home/home';
 import ForgotPasswordScreen from './screens/recuperar/recuperar';
 import ProfileScreen from './screens/profile/ProfileScreen'; // Tela de Perfil
+import EditProfileScreen from './screens/profile/EditProfile'; // Tela de Editar Perfil
 import AgendaScreen from './screens/agenda/AgendaScreen'; // Tela de Agenda
 import ChatScreen from './screens/chat/ChatScreen'; // Tela de Chat
-
+import ProfileStack from './screens/profile/ProfileStack'; // Stack de Perfil
 import { ActivityIndicator, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -30,6 +31,17 @@ function AuthStack() {
         component={ForgotPasswordScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ headerShown: false }}
+      />
+                                                                       
     </Stack.Navigator>
   );
 }
@@ -73,7 +85,7 @@ function AppTabs() {
       />
       <Tab.Screen
         name="Perfil"
-        component={ProfileScreen}
+        component={ProfileStack}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="person-outline" size={size} color={color} />
