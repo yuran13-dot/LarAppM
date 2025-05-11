@@ -1,12 +1,38 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { LarApp_db } from '../../firebaseConfig';
 
 export default function QuartoDetalhesModal({ visible, onClose, quarto }) {
   if (!quarto) return null;
 
-  const { numero, estado, tipo } = quarto;
+  const { id, numero, estado, tipo } = quarto;
   const isOcupado = estado.toLowerCase() === 'ocupado';
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Confirmar exclusão',
+      `Tem certeza que deseja apagar o quarto ${numero}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Apagar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(LarApp_db, 'quartos', id));
+              Alert.alert('Sucesso', 'Quarto apagado com sucesso!');
+              onClose();
+            } catch (error) {
+              console.error('Erro ao apagar quarto:', error);
+              Alert.alert('Erro', 'Ocorreu um erro ao apagar o quarto.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <Modal visible={visible} animationType="fade" transparent>
@@ -39,6 +65,11 @@ export default function QuartoDetalhesModal({ visible, onClose, quarto }) {
             <Text style={styles.value}>{tipo}</Text>
           </View>
 
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+            <Icon name="trash-bin" size={20} color="#fff" style={{ marginRight: 6 }} />
+            <Text style={styles.deleteButtonText}>Apagar Quarto</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.closeModalButton} onPress={onClose}>
             <Text style={styles.closeModalText}>Fechar</Text>
           </TouchableOpacity>
@@ -58,6 +89,8 @@ const styles = StyleSheet.create({
   icon: { marginRight: 10 },
   label: { fontSize: 16, color: '#666', width: 70 },
   value: { fontSize: 17, fontWeight: 'bold', color: '#333' },
-  closeModalButton: { marginTop: 25, backgroundColor: '#007bff', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  deleteButton: { flexDirection: 'row', backgroundColor: '#dc3545', paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
+  deleteButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  closeModalButton: { marginTop: 15, backgroundColor: '#007bff', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
   closeModalText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
