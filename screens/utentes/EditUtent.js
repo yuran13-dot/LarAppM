@@ -1,19 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Modal, Text, TextInput, TouchableOpacity, PanResponder, Animated, Platform, KeyboardAvoidingView, ScrollView, Dimensions, StyleSheet, View, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { collection, addDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { LarApp_db } from '../../firebaseConfig';
-import 'react-native-get-random-values';
-import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-export default function AddUtenteModal({ visible, onClose }) {
+export default function EditUtenteModal({ visible, onClose, utente }) {
   const [nome, setNome] = useState('');
   const [quarto, setQuarto] = useState('');
   const [contacto, setContacto] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   const [email, setEmail] = useState('');
-  const [numeroUtente, setNumeroUtente] = useState('');
 
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -46,46 +43,15 @@ export default function AddUtenteModal({ visible, onClose }) {
     })
   ).current;
 
-  const limparCampos = () => {
-    setNome('');
-    setQuarto('');
-    setContacto('');
-    setDataNascimento('');
-    setEmail('');
-    setNumeroUtente(''); 
-  };
-
-  const handleSave = async () => {
-    if (nome.trim() && quarto.trim() && contacto.trim() && dataNascimento.trim() && email.trim()) {
-      try {
-        const novoUtente = {
-          numeroUtente: numeroUtente, // já foi gerado automaticamente
-          nome: nome.trim(),
-          quarto: quarto.trim(),
-          contacto: contacto.trim(),
-          dataNascimento: dataNascimento.trim(),
-          email: email.trim(),
-          createdAt: new Date(),
-        };
-
-        await addDoc(collection(LarApp_db, 'utentes'), novoUtente);
-
-        Alert.alert('Sucesso', 'Utente adicionado com sucesso!');
-        limparCampos();
-        onClose();
-      } catch (error) {
-        console.error('Erro ao adicionar utente:', error);
-        Alert.alert('Erro', 'Ocorreu um erro ao adicionar o utente.');
-      }
-    } else {
-      Alert.alert('Atenção', 'Preencha todos os campos.');
-    }
-  };
-
-  // Gera UUID sempre que o modal abre
+  // Preenche os campos quando o modal abre
   useEffect(() => {
-    if (visible) {
-      setNumeroUtente(uuidv4());
+    if (visible && utente) {
+      setNome(utente.nome || '');
+      setQuarto(utente.quarto || '');
+      setContacto(utente.contacto || '');
+      setDataNascimento(utente.dataNascimento || '');
+      setEmail(utente.email || '');
+
       Animated.spring(modalAnimation, {
         toValue: 1,
         useNativeDriver: true,
@@ -96,7 +62,7 @@ export default function AddUtenteModal({ visible, onClose }) {
         useNativeDriver: true,
       }).start();
     }
-  }, [visible]);
+  }, [visible, utente]);
 
   const onChangeDate = (event, selectedDate) => {
     setShowDatePicker(false);
@@ -105,6 +71,30 @@ export default function AddUtenteModal({ visible, onClose }) {
       const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
       const year = selectedDate.getFullYear();
       setDataNascimento(`${day}/${month}/${year}`);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (nome.trim() && quarto.trim() && contacto.trim() && dataNascimento.trim() && email.trim()) {
+      try {
+        const utenteRef = doc(LarApp_db, 'utentes', utente.id);
+
+        await updateDoc(utenteRef, {
+          nome: nome.trim(),
+          quarto: quarto.trim(),
+          contacto: contacto.trim(),
+          dataNascimento: dataNascimento.trim(),
+          email: email.trim(),
+        });
+
+        Alert.alert('Sucesso', 'Utente atualizado com sucesso!');
+        onClose();
+      } catch (error) {
+        console.error('Erro ao atualizar utente:', error);
+        Alert.alert('Erro', 'Ocorreu um erro ao atualizar o utente.');
+      }
+    } else {
+      Alert.alert('Atenção', 'Preencha todos os campos.');
     }
   };
 
@@ -155,8 +145,7 @@ export default function AddUtenteModal({ visible, onClose }) {
               contentContainerStyle={styles.contentContainer}
               keyboardShouldPersistTaps="handled"
             >
-              <Text style={styles.title}>Adicionar Utente</Text>
-
+              <Text style={styles.title}>Editar Utente</Text>
 
               <TextInput
                 style={styles.input}
@@ -190,7 +179,7 @@ export default function AddUtenteModal({ visible, onClose }) {
                   mode="date"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={onChangeDate}
-                  maximumDate={new Date()} // não permite data futura
+                  maximumDate={new Date()}
                 />
               )}
 
@@ -203,8 +192,8 @@ export default function AddUtenteModal({ visible, onClose }) {
                 autoCapitalize="none"
               />
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Salvar</Text>
+              <TouchableOpacity style={styles.saveButton} onPress={handleUpdate}>
+                <Text style={styles.saveButtonText}>Atualizar</Text>
               </TouchableOpacity>
             </ScrollView>
           </KeyboardAvoidingView>
@@ -242,19 +231,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-  },
-  label: {
-    fontSize: 14,
-    marginBottom: 5,
-    color: '#333',
-  },
-  uuidText: {
-    fontSize: 14,
-    marginBottom: 15,
-    color: '#555',
-    backgroundColor: '#eee',
-    padding: 10,
-    borderRadius: 8,
   },
   input: {
     height: 50,

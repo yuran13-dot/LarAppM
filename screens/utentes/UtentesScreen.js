@@ -4,6 +4,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import BackButton from '../../components/BackButton';
 import AddUtenteModal from '../utentes/addUtente';
+import EditUtenteModal from './EditUtent';
+
 import styles from './styles';
 
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
@@ -13,6 +15,8 @@ export default function UtentesScreen({ navigation }) {
   const [search, setSearch] = useState('');
   const [utentes, setUtentes] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedUtente, setSelectedUtente] = useState(null);
+  const [isEditModalVisible, setEditModalVisible] = useState(false);
 
   // Carregar utentes do Firestore automaticamente
   useEffect(() => {
@@ -42,9 +46,17 @@ export default function UtentesScreen({ navigation }) {
           <Text style={styles.utenteQuarto}>Quarto: {item.quarto}</Text> 
         </View>
   
-        <TouchableOpacity style={styles.iconAction} onPress={() => console.log('Editar', item.id)}>
-          <Icon name="pencil-outline" size={20} color="#555" />
-        </TouchableOpacity>
+        <TouchableOpacity
+  style={styles.iconAction}
+  onPress={() => {
+    setSelectedUtente(item);
+    setEditModalVisible(true);
+  }}
+>
+  <Icon name="pencil-outline" size={20} color="#555" />
+</TouchableOpacity>
+
+
         <TouchableOpacity style={styles.iconAction} onPress={() => console.log('Excluir', item.id)}>
           <Icon name="trash-outline" size={20} color="#d11a2a" />
         </TouchableOpacity>
@@ -95,6 +107,13 @@ export default function UtentesScreen({ navigation }) {
         visible={isModalVisible}
         onClose={() => setModalVisible(false)}
       />
+      <EditUtenteModal
+  visible={isEditModalVisible}
+  onClose={() => setEditModalVisible(false)}
+  utente={selectedUtente}
+/>
+
     </KeyboardAvoidingView>
+    
   );
 }

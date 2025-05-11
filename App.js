@@ -16,6 +16,7 @@ import { ActivityIndicator, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import RoomsScreen from './screens/rooms/RoomsScreen';
 import HomeStack from './navigation/HomeStack'; // Stack de Home
+import EditUtenteScreen from './screens/profile/EditProfile';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -48,6 +49,8 @@ function AuthStack() {
         component={RoomsScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen name="EditUtente" component={EditUtenteScreen} options={{ headerShown: false }} />
+
                                                                          
     </Stack.Navigator>
   );
