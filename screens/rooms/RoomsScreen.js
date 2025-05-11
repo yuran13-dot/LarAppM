@@ -11,19 +11,19 @@ import {
 import styles from "./styles";
 import BackButton from "../../components/BackButton";
 import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function RoomsScreen() {
-  //variaveis do search bar
+  // variáveis do search bar
   const [pesquisa, setPesquisa] = useState("");
   const [modoEdicao, setModoEdicao] = useState(false);
 
-  // variaveis do modal
+  // variáveis do modal
   const [modalVisible, setModalVisible] = useState(false);
   const [detalhesModalVisible, setDetalhesModalVisible] = useState(false);
   const [quartoSelecionado, setQuartoSelecionado] = useState(null);
 
-  // var do formulário
+  // variáveis do formulário
   const [form, setForm] = useState({
     numero: "",
     andar: "",
@@ -34,6 +34,10 @@ export default function RoomsScreen() {
     manutencao: "",
     nota: "",
   });
+
+  // variáveis para a data de entrada
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dataEntrada, setDataEntrada] = useState(new Date());
 
   const handleSalvar = () => {
     const associado1 = form.utente1 !== "";
@@ -73,11 +77,12 @@ export default function RoomsScreen() {
       nota: "",
     });
   };
+
   const handleRemover = (id) => {
     setQuartos(quartos.filter((q) => q.id !== id));
   };
 
-  // variaveis do status do Quarto
+  // variáveis do status do Quarto
   const [quartos, setQuartos] = useState([]);
   const filtrados = quartos.filter((q) =>
     q.numero.toLowerCase().includes(pesquisa.toLowerCase())
@@ -90,9 +95,22 @@ export default function RoomsScreen() {
   );
   const pacientes = ["João Paulo", "Maria Lopes", "Carlos Dias"];
 
+  // Função para exibir o DateTimePicker
+  const showDatePickerHandler = () => {
+    setShowDatePicker(true);
+  };
+
+  // Função para lidar com a seleção de data
+  const onDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || dataEntrada;
+    setShowDatePicker(false);
+    setDataEntrada(currentDate);
+    setForm({ ...form, entrada: currentDate.toLocaleDateString() });
+  };
+
   return (
     <>
-      <BackButton />
+      <BackButton style={styles.backButton} />
       <View style={styles.container}>
         <ScrollView
           style={{ flex: 1 }}
@@ -147,10 +165,7 @@ export default function RoomsScreen() {
               <Text style={styles.cardTitle}>Quarto {q.numero}</Text>
               <Text>{q.tipo}</Text>
               <Text
-                style={[
-                  styles.estado,
-                  q.estado === "Ocupado" ? styles.ocupado : styles.livre,
-                ]}
+                style={[styles.estado, q.estado === "Ocupado" ? styles.ocupado : styles.livre]}
               >
                 {q.estado}
               </Text>
@@ -184,6 +199,7 @@ export default function RoomsScreen() {
               </View>
             </View>
           ))}
+
           {/* Modal de Adição/Edição do Quarto */}
           <Modal visible={modalVisible} animationType="slide" transparent>
             <View style={styles.modalOverlay}>
@@ -193,15 +209,13 @@ export default function RoomsScreen() {
                 </Text>
                 <Text style={styles.label}>Número do Quarto</Text>
                 <View style={styles.pickerBox}>
-                  <Picker
-                    selectedValue={form.numero}
-                    onValueChange={(val) => setForm({ ...form, numero: val })}
-                  >
-                    <Picker.Item label="Seleciona o número" value="" />
-                    {numerosQuarto.map((n) => (
-                      <Picker.Item key={n} label={`Quarto ${n}`} value={n} />
-                    ))}
-                  </Picker>
+                  {/* Picker de Número do Quarto */}
+                  <DateTimePicker
+                    value={dataEntrada}
+                    mode="date"
+                    display="default"
+                    onChange={onDateChange}
+                  />
                 </View>
                 <Text style={styles.label}>Piso (Andar)</Text>
                 <TextInput
@@ -212,56 +226,41 @@ export default function RoomsScreen() {
                 />
                 <Text style={styles.label}>Capacidade</Text>
                 <View style={styles.pickerBox}>
-                  <Picker
+                  <DateTimePicker
                     selectedValue={form.capacidade}
                     onValueChange={(val) =>
                       setForm({ ...form, capacidade: val })
                     }
                   >
-                    <Picker.Item label="Individual" value="Individual" />
-                    <Picker.Item label="Duplo" value="Duplo" />
-                  </Picker>
+                    <DateTimePicker.Item label="Individual" value="Individual" />
+                    <DateTimePicker.Item label="Duplo" value="Duplo" />
+                  </DateTimePicker>
                 </View>
                 <Text style={styles.label}>Paciente 1</Text>
                 <View style={styles.pickerBox}>
-                  <Picker
-                    selectedValue={form.utente1}
-                    onValueChange={(val) => setForm({ ...form, utente1: val })}
-                  >
-                    <Picker.Item label="Seleciona paciente" value="" />
-                    {pacientes.map((p) => (
-                      <Picker.Item key={p} label={p} value={p} />
-                    ))}
-                  </Picker>
+                  {/* Picker de Paciente 1 */}
                 </View>
                 {form.capacidade === "Duplo" && (
                   <>
                     <Text style={styles.label}>Paciente 2</Text>
                     <View style={styles.pickerBox}>
-                      <Picker
-                        selectedValue={form.utente2}
-                        onValueChange={(val) =>
-                          setForm({ ...form, utente2: val })
-                        }
-                      >
-                        <Picker.Item
-                          label="Seleciona segundo paciente"
-                          value=""
-                        />
-                        {pacientes.map((p) => (
-                          <Picker.Item key={p} label={p} value={p} />
-                        ))}
-                      </Picker>
+                      {/* Picker de Paciente 2 */}
                     </View>
                   </>
                 )}
                 <Text style={styles.label}>Data de Entrada</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="dd/mm/aaaa"
-                  value={form.entrada}
-                  onChangeText={(t) => setForm({ ...form, entrada: t })}
-                />
+                <TouchableOpacity onPress={showDatePickerHandler}>
+                  <Text style={styles.input}>{dataEntrada.toLocaleDateString()}</Text>
+                </TouchableOpacity>
+                {/* Exibir o DateTimePicker */}
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={dataEntrada}
+                    mode="date"
+                    display="default"
+                    onChange={onDateChange}
+                  />
+                )}
                 <Text style={styles.label}>Notas/Observações</Text>
                 <TextInput
                   style={[styles.input, { height: 60 }]}

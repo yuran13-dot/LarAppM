@@ -1,9 +1,10 @@
 import { StyleSheet } from "react-native";
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingTop: "%",
+    paddingTop: "25%", // Ajuste para um valor percentual válido
   },
   container_scroll: {
     paddingHorizontal: 20,
@@ -163,5 +164,14 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
   },
+
+  // Estilo para o BackButton fora do container
+  backButton: {
+    position: "absolute",
+    top: 40,
+    left: 10,
+    zIndex: 1, // Garante que o botão esteja sobre os outros componentes
+  },
 });
+
 export default styles;
