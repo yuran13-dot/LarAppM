@@ -55,7 +55,9 @@ export default function AddFuncionarioModal({ visible, onClose }) {
     setDataNascimento(new Date());
     setEmail('');
     setFuncao('');
+    setNumeroFuncionario('');
   };
+  
 
   const formatarData = (date) => {
     const day = date.getDate().toString().padStart(2, '0');
