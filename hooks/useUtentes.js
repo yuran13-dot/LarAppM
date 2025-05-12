@@ -4,11 +4,12 @@ import {
   doc,
   addDoc,
   updateDoc,
+  deleteDoc,
   getDocs,
   query,
   where,
 } from "firebase/firestore";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
 import { auth, LarApp_db } from "../firebaseConfig";
 import { useAuth } from "./AuthContext";
 
@@ -178,6 +179,135 @@ export const useUtentes = () => {
     }
   }, []);
 
+  // Inativar utente
+  const inativarUtente = useCallback(async (utenteId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Atualizar na coleção user
+      const userQuery = query(
+        collection(LarApp_db, "user"),
+        where("uid", "==", utenteId)
+      );
+      const userSnapshot = await getDocs(userQuery);
+
+      if (!userSnapshot.empty) {
+        const userDoc = userSnapshot.docs[0];
+        await updateDoc(doc(LarApp_db, "user", userDoc.id), {
+          status: "inativo",
+          updatedAt: new Date(),
+        });
+      }
+
+      // Atualizar na coleção utentes
+      const utenteQuery = query(
+        collection(LarApp_db, "utentes"),
+        where("id", "==", utenteId)
+      );
+      const utenteSnapshot = await getDocs(utenteQuery);
+
+      if (!utenteSnapshot.empty) {
+        const utenteDoc = utenteSnapshot.docs[0];
+        await updateDoc(doc(LarApp_db, "utentes", utenteDoc.id), {
+          status: "inativo",
+          updatedAt: new Date(),
+        });
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Erro ao inativar utente:", err);
+      setError("Erro ao inativar utente: " + err.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Ativar utente
+  const ativarUtente = useCallback(async (utenteId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Atualizar na coleção user
+      const userQuery = query(
+        collection(LarApp_db, "user"),
+        where("uid", "==", utenteId)
+      );
+      const userSnapshot = await getDocs(userQuery);
+
+      if (!userSnapshot.empty) {
+        const userDoc = userSnapshot.docs[0];
+        await updateDoc(doc(LarApp_db, "user", userDoc.id), {
+          status: "ativo",
+          updatedAt: new Date(),
+        });
+      }
+
+      // Atualizar na coleção utentes
+      const utenteQuery = query(
+        collection(LarApp_db, "utentes"),
+        where("id", "==", utenteId)
+      );
+      const utenteSnapshot = await getDocs(utenteQuery);
+
+      if (!utenteSnapshot.empty) {
+        const utenteDoc = utenteSnapshot.docs[0];
+        await updateDoc(doc(LarApp_db, "utentes", utenteDoc.id), {
+          status: "ativo",
+          updatedAt: new Date(),
+        });
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Erro ao ativar utente:", err);
+      setError("Erro ao ativar utente: " + err.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Deletar utente completamente
+  const deletarUtente = useCallback(async (utenteId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Deletar da coleção user
+      const userQuery = query(
+        collection(LarApp_db, "user"),
+        where("uid", "==", utenteId)
+      );
+      const userSnapshot = await getDocs(userQuery);
+
+      if (!userSnapshot.empty) {
+        const userDoc = userSnapshot.docs[0];
+        await deleteDoc(doc(LarApp_db, "user", userDoc.id));
+      }
+
+      // Deletar da coleção utentes
+      const utenteQuery = query(
+        collection(LarApp_db, "utentes"),
+        where("id", "==", utenteId)
+      );
+      const utenteSnapshot = await getDocs(utenteQuery);
+
+      if (!utenteSnapshot.empty) {
+        const utenteDoc = utenteSnapshot.docs[0];
+        await deleteDoc(doc(LarApp_db, "utentes", utenteDoc.id));
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Erro ao deletar utente:", err);
+      setError("Erro ao deletar utente: " + err.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     loading,
     error,
@@ -187,6 +317,9 @@ export const useUtentes = () => {
     addRegistroMedico,
     getAtividades,
     updateQuarto,
+    inativarUtente,
+    ativarUtente,
+    deletarUtente,
     clearError: () => setError(null),
   };
 };

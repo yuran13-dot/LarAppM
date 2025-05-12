@@ -179,10 +179,23 @@ export const AuthProvider = ({ children }) => {
         const storedUser = await AsyncStorage.getItem("user");
         if (storedUser) {
           const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          const userDataResult = await fetchUserData(parsedUser.uid);
-          if (userDataResult) {
-            await setupListeners(userDataResult.role);
+          const userQuery = query(
+            collection(LarApp_db, "user"),
+            where("uid", "==", parsedUser.uid)
+          );
+          const userSnapshot = await getDocs(userQuery);
+
+          if (!userSnapshot.empty) {
+            const userData = userSnapshot.docs[0].data();
+            if (userData.status === "inativo") {
+              await AsyncStorage.clear();
+              setUser(null);
+              setUserData(null);
+              return;
+            }
+            setUser(parsedUser);
+            setUserData(userData);
+            await setupListeners(userData.role);
           }
         }
       } catch (error) {
@@ -203,11 +216,25 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        setUser(firebaseUser);
-        await AsyncStorage.setItem("user", JSON.stringify(firebaseUser));
-        const newUserData = await fetchUserData(firebaseUser.uid);
-        if (newUserData) {
-          await setupListeners(newUserData.role);
+        const userQuery = query(
+          collection(LarApp_db, "user"),
+          where("uid", "==", firebaseUser.uid)
+        );
+        const userSnapshot = await getDocs(userQuery);
+
+        if (!userSnapshot.empty) {
+          const userData = userSnapshot.docs[0].data();
+          if (userData.status === "inativo") {
+            await auth.signOut();
+            await AsyncStorage.clear();
+            setUser(null);
+            setUserData(null);
+            return;
+          }
+          setUser(firebaseUser);
+          await AsyncStorage.setItem("user", JSON.stringify(firebaseUser));
+          setUserData(userData);
+          await setupListeners(userData.role);
         }
       } else if (!firebaseUser && !isCreatingNewUser) {
         setUser(null);

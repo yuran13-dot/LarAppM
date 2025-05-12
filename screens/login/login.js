@@ -1,21 +1,32 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, LarApp_db } from "../../firebaseConfig";
-import { doc, getDoc } from 'firebase/firestore';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { doc, getDoc } from "firebase/firestore";
+import Icon from "react-native-vector-icons/Ionicons";
 import styles from "./styles";
 import Logo from "../../components/Logo";
 import PrimaryButton from "../../components/PrimaryButton";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); 
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [emailError, setEmailError] = useState("");
@@ -41,7 +52,9 @@ export default function LoginScreen() {
       setPasswordError("A palavra passe deve ter pelo menos 6 caracteres.");
       valid = false;
     } else if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
-      setPasswordError("A palavra passe deve conter pelo menos uma letra maiúscula e um número.");
+      setPasswordError(
+        "A palavra passe deve conter pelo menos uma letra maiúscula e um número."
+      );
       valid = false;
     }
 
@@ -57,29 +70,48 @@ export default function LoginScreen() {
     setError(null);
     try {
       // Authenticate with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const user = userCredential.user;
 
       // Fetch user data including role from Firestore
-      const userDocRef = doc(LarApp_db, 'user', user.uid);
-      const userDoc = await getDoc(userDocRef);
-      
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        // Store user data in AsyncStorage
-        await AsyncStorage.setItem('userData', JSON.stringify({
-          ...userData,
-          uid: user.uid
-        }));
-        console.log("Login bem-sucedido como:", userData.role);
-      } else {
+      const userQuery = query(
+        collection(LarApp_db, "user"),
+        where("uid", "==", user.uid)
+      );
+      const userSnapshot = await getDocs(userQuery);
+
+      if (userSnapshot.empty) {
         setError("Dados do usuário não encontrados.");
+        await auth.signOut();
         return;
       }
+
+      const userData = userSnapshot.docs[0].data();
+
+      // Verificar se o usuário está ativo
+      if (userData.status === "inativo") {
+        setError("Sua conta está inativa. Por favor, contate o administrador.");
+        await auth.signOut();
+        return;
+      }
+
+      // Store user data in AsyncStorage
+      await AsyncStorage.setItem(
+        "userData",
+        JSON.stringify({
+          ...userData,
+          uid: user.uid,
+        })
+      );
+      console.log("Login bem-sucedido como:", userData.role);
     } catch (err) {
-      if (err.code === 'auth/user-not-found') {
+      if (err.code === "auth/user-not-found") {
         setError("User não encontrado. Verifique seu email.");
-      } else if (err.code === 'auth/wrong-password') {
+      } else if (err.code === "auth/wrong-password") {
         setError("Palavra passe incorreta. Tente novamente.");
       } else {
         setError("Falha no login: " + err.message);
@@ -90,10 +122,16 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+      >
         <Logo />
-        
+
         {error && <Text style={styles.error}>{error}</Text>}
 
         <View style={styles.inputContainer}>
@@ -126,18 +164,30 @@ export default function LoginScreen() {
             />
           </TouchableOpacity>
         </View>
-        {passwordError ? <Text style={styles.error}>{passwordError}</Text> : null}
+        {passwordError ? (
+          <Text style={styles.error}>{passwordError}</Text>
+        ) : null}
 
-        <TouchableOpacity style={styles.link} onPress={() => navigation.navigate("ForgotPassword")}>
+        <TouchableOpacity
+          style={styles.link}
+          onPress={() => navigation.navigate("ForgotPassword")}
+        >
           <Text style={styles.linkText}>Esqueceu sua senha?</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleLogin}
+          disabled={loading}
+        >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <PrimaryButton title="Entrar" onPress={handleLogin}
-            disabled={loading} style={{ with: "80%" }}
+            <PrimaryButton
+              title="Entrar"
+              onPress={handleLogin}
+              disabled={loading}
+              style={{ with: "80%" }}
             />
           )}
         </TouchableOpacity>

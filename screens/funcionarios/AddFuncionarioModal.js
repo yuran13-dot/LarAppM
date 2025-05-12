@@ -33,8 +33,8 @@ export default function AddFuncionarioModal({ visible, onClose }) {
   const [password, setPassword] = useState("");
   const [funcao, setFuncao] = useState("");
   const [id, setId] = useState("");
-  const [status, setStatus] = useState("Ativo");
-  const [role, setRole] = useState("Funcionario");
+  const [status, setStatus] = useState("ativo");
+  const [role, setRole] = useState("funcionario");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -100,8 +100,8 @@ export default function AddFuncionarioModal({ visible, onClose }) {
     setPassword("");
     setFuncao("");
     setId("");
-    setStatus("Ativo");
-    setRole("Funcionario");
+    setStatus("ativo");
+    setRole("funcionario");
   };
 
   const formatarData = (date) => {
@@ -134,7 +134,7 @@ export default function AddFuncionarioModal({ visible, onClose }) {
           email: email.trim(),
           role: role.toLowerCase(),
           createdAt: new Date(),
-          status: status,
+          status: "ativo",
         };
 
         // Adicionar à coleção de users primeiro
@@ -150,8 +150,8 @@ export default function AddFuncionarioModal({ visible, onClose }) {
           dataNascimento: formatarData(dataNascimento),
           email: email.trim(),
           funcao,
-          status,
-          role,
+          status: "ativo",
+          role: role.toLowerCase(),
           createdAt: new Date(),
         };
 

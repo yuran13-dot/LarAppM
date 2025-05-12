@@ -173,6 +173,96 @@ export const useFuncionarios = () => {
     []
   );
 
+  // Inativar funcionário
+  const inativarFuncionario = useCallback(async (funcionarioId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Atualizar na coleção user
+      const userQuery = query(
+        collection(LarApp_db, "user"),
+        where("uid", "==", funcionarioId)
+      );
+      const userSnapshot = await getDocs(userQuery);
+
+      if (!userSnapshot.empty) {
+        const userDoc = userSnapshot.docs[0];
+        await updateDoc(doc(LarApp_db, "user", userDoc.id), {
+          status: "inativo",
+          updatedAt: new Date(),
+        });
+      }
+
+      // Atualizar na coleção funcionarios
+      const funcionarioQuery = query(
+        collection(LarApp_db, "funcionarios"),
+        where("id", "==", funcionarioId)
+      );
+      const funcionarioSnapshot = await getDocs(funcionarioQuery);
+
+      if (!funcionarioSnapshot.empty) {
+        const funcionarioDoc = funcionarioSnapshot.docs[0];
+        await updateDoc(doc(LarApp_db, "funcionarios", funcionarioDoc.id), {
+          status: "inativo",
+          updatedAt: new Date(),
+        });
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Erro ao inativar funcionário:", err);
+      setError("Erro ao inativar funcionário: " + err.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Ativar funcionário
+  const ativarFuncionario = useCallback(async (funcionarioId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Atualizar na coleção user
+      const userQuery = query(
+        collection(LarApp_db, "user"),
+        where("uid", "==", funcionarioId)
+      );
+      const userSnapshot = await getDocs(userQuery);
+
+      if (!userSnapshot.empty) {
+        const userDoc = userSnapshot.docs[0];
+        await updateDoc(doc(LarApp_db, "user", userDoc.id), {
+          status: "ativo",
+          updatedAt: new Date(),
+        });
+      }
+
+      // Atualizar na coleção funcionarios
+      const funcionarioQuery = query(
+        collection(LarApp_db, "funcionarios"),
+        where("id", "==", funcionarioId)
+      );
+      const funcionarioSnapshot = await getDocs(funcionarioQuery);
+
+      if (!funcionarioSnapshot.empty) {
+        const funcionarioDoc = funcionarioSnapshot.docs[0];
+        await updateDoc(doc(LarApp_db, "funcionarios", funcionarioDoc.id), {
+          status: "ativo",
+          updatedAt: new Date(),
+        });
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Erro ao ativar funcionário:", err);
+      setError("Erro ao ativar funcionário: " + err.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     loading,
     error,
@@ -181,6 +271,8 @@ export const useFuncionarios = () => {
     getFuncionarioSchedule,
     getFuncionarioAssignments,
     toggleFuncionarioStatus,
+    inativarFuncionario,
+    ativarFuncionario,
     clearError: () => setError(null),
   };
 };

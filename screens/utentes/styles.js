@@ -4,22 +4,22 @@ export default StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: "25%",
-    backgroundColor: "#f5f9ff",
+    paddingTop: "20%",
+    backgroundColor: "#eef3f9",
   },
 
   header: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#007bff",
-    marginBottom: 2,
+    color: "#1a73e8",
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 15,
+    color: "#5f6368",
   },
 
   searchRow: {
@@ -32,30 +32,9 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 10,
-    height: 45,
-    backgroundColor: "#fff",
-  },
-  searchInput: {
-    flex: 1,
-    paddingHorizontal: 10,
-    fontSize: 15,
-  },
-
-  addButton: {
-    backgroundColor: "#007bff",
-    padding: 12,
-    borderRadius: 10,
-    marginLeft: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  utenteItem: {
+    borderColor: "#d0d7e2",
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
+    height: 48,
     backgroundColor: "#fff",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -63,32 +42,90 @@ export default StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
+  searchInput: {
+    flex: 1,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: "#333",
+  },
+
+  addButton: {
+    padding: 14,
+    borderRadius: 12,
+    marginLeft: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#1a73e8",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  list: {
+    paddingBottom: 20,
+  },
+
+  utenteItem: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
   utenteInfo: {
     flexDirection: "row",
     alignItems: "center",
   },
   utenteNome: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "600",
-    color: "#333",
+    color: "#202124",
   },
   utenteQuarto: {
-    fontSize: 13,
-    color: "#777",
-    marginTop: 2,
+    fontSize: 14,
+    color: "#5f6368",
+    marginTop: 4,
   },
   avatar: {
-    marginRight: 12,
+    marginRight: 14,
+  },
+
+  actionButtons: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   iconAction: {
-    marginLeft: 12,
+    padding: 8,
+    marginLeft: 8,
+  },
+
+  statusAtivo: {
+    color: "#2ecc71",
+    fontWeight: "bold",
+  },
+
+  statusInativo: {
+    color: "#e74c3c",
+    fontWeight: "bold",
+  },
+
+  utenteStatus: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 2,
   },
 
   emptyText: {
     textAlign: "center",
-    marginTop: 40,
+    color: "#666",
+    marginTop: 20,
     fontSize: 16,
-    color: "#999",
   },
 });

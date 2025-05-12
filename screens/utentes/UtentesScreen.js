@@ -14,7 +14,7 @@ import FontAwesome from "react-native-vector-icons/FontAwesome";
 import BackButton from "../../components/BackButton";
 import AddUtenteModal from "../utentes/addUtente";
 import EditUtenteModal from "./EditUtent";
-import DeleteUtenteModal from "./DeleteUser";
+import GerenciarUtenteModal from "./DeleteUser";
 import {
   collection,
   onSnapshot,
@@ -33,7 +33,7 @@ export default function UtentesScreen({ navigation }) {
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedUtente, setSelectedUtente] = useState(null);
   const [isEditModalVisible, setEditModalVisible] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [gerenciarModalVisible, setGerenciarModalVisible] = useState(false);
 
   // Carregar utentes do Firestore automaticamente
   useEffect(() => {
@@ -58,10 +58,7 @@ export default function UtentesScreen({ navigation }) {
   );
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.utenteItem}
-      onPress={() => navigation.navigate("PerfilUtente", { utenteId: item.id })}
-    >
+    <View style={styles.utenteItem}>
       <View style={styles.utenteInfo}>
         <FontAwesome
           name="user-circle"
@@ -72,44 +69,44 @@ export default function UtentesScreen({ navigation }) {
         <View style={{ flex: 1 }}>
           <Text style={styles.utenteNome}>{item.nome}</Text>
           <Text style={styles.utenteQuarto}>Quarto: {item.quarto}</Text>
+          <Text style={styles.utenteStatus}>
+            Status:{" "}
+            <Text
+              style={
+                item.status === "ativo"
+                  ? styles.statusAtivo
+                  : styles.statusInativo
+              }
+            >
+              {item.status === "ativo" ? "Ativo" : "Inativo"}
+            </Text>
+          </Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.iconAction}
-          onPress={(e) => {
-            e.stopPropagation();
-            setSelectedUtente(item);
-            setEditModalVisible(true);
-          }}
-        >
-          <Icon name="pencil-outline" size={20} color="#555" />
-        </TouchableOpacity>
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={styles.iconAction}
+            onPress={() => {
+              setSelectedUtente(item);
+              setEditModalVisible(true);
+            }}
+          >
+            <Icon name="pencil-outline" size={20} color="#555" />
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.iconAction}
-          onPress={(e) => {
-            e.stopPropagation();
-            setSelectedUtente(item);
-            setDeleteModalVisible(true);
-          }}
-        >
-          <Icon name="trash-outline" size={20} color="#d11a2a" />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconAction}
+            onPress={() => {
+              setSelectedUtente(item);
+              setGerenciarModalVisible(true);
+            }}
+          >
+            <Icon name="settings-outline" size={20} color="#555" />
+          </TouchableOpacity>
+        </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
-
-  // Função para excluir o utente
-  const handleDeleteUtente = async (utenteId) => {
-    try {
-      const utenteRef = doc(LarApp_db, "utentes", utenteId);
-      await deleteDoc(utenteRef);
-
-      setDeleteModalVisible(false); // Fechar o modal de exclusão
-    } catch (error) {
-      console.error("Erro ao excluir utente:", error);
-    }
-  };
 
   return (
     <KeyboardAvoidingView
@@ -141,7 +138,7 @@ export default function UtentesScreen({ navigation }) {
         </View>
 
         <TouchableOpacity
-          style={styles.addButton}
+          style={[styles.addButton, { backgroundColor: "#007bff" }]}
           onPress={() => setModalVisible(true)}
         >
           <Icon name="person-add" size={24} color="#fff" />
@@ -153,9 +150,9 @@ export default function UtentesScreen({ navigation }) {
       ) : (
         <FlatList
           data={filteredUtentes}
-          keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
         />
       )}
 
@@ -163,18 +160,17 @@ export default function UtentesScreen({ navigation }) {
         visible={isModalVisible}
         onClose={() => setModalVisible(false)}
       />
+
       <EditUtenteModal
         visible={isEditModalVisible}
         onClose={() => setEditModalVisible(false)}
         utente={selectedUtente}
       />
 
-      {/* Modal de exclusão */}
-      <DeleteUtenteModal
-        visible={deleteModalVisible}
-        onClose={() => setDeleteModalVisible(false)}
+      <GerenciarUtenteModal
+        visible={gerenciarModalVisible}
+        onClose={() => setGerenciarModalVisible(false)}
         utente={selectedUtente}
-        onDeleteSuccess={() => handleDeleteUtente(selectedUtente.id)}
       />
     </KeyboardAvoidingView>
   );
