@@ -211,8 +211,8 @@ export default function EditProfileScreen() {
           <ActivityIndicator color="#fff" />
         ) : (
           <>
-            <Icon name="save-outline" size={20} color="#fff" />
-            <Text style={styles.saveButtonText}>Salvar Alterações</Text>
+           
+            <Text style={styles.saveButtonText}>Guardar </Text>
           </>
         )}
       </TouchableOpacity>
@@ -234,6 +234,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f6f6f6',
+    paddingTop: 30,
+    paddingBottom: 20,
   },
   header: {
     flexDirection: 'row',
