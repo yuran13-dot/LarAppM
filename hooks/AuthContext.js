@@ -5,6 +5,7 @@ import React, {
   useContext,
   useEffect,
   useState,
+  useRef,
 } from "react";
 import {
   collection,
@@ -14,6 +15,7 @@ import {
   query,
   where,
   onSnapshot,
+  addDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, LarApp_db } from "../firebaseConfig";
@@ -29,18 +31,54 @@ export const AuthProvider = ({ children }) => {
   const [funcionarios, setFuncionarios] = useState([]);
   const [utentes, setUtentes] = useState([]);
   const [error, setError] = useState(null);
+  const [isCreatingNewUser, setIsCreatingNewUser] = useState(false);
+
+  // Refs para controlar subscrições e estado
+  const unsubscribesRef = useRef({});
+  const isInitializedRef = useRef(false);
+
+  // Função para criar usuário com role específica
+  const createUserWithRole = useCallback(async (userData, role) => {
+    try {
+      setIsCreatingNewUser(true);
+
+      const userQuery = query(
+        collection(LarApp_db, "user"),
+        where("email", "==", userData.email)
+      );
+      const querySnapshot = await getDocs(userQuery);
+
+      if (!querySnapshot.empty) {
+        throw new Error("Este email já está em uso");
+      }
+
+      const newUserData = {
+        ...userData,
+        role: role.toLowerCase(),
+        createdAt: new Date(),
+        status: "ativo",
+      };
+
+      const docRef = await addDoc(collection(LarApp_db, "user"), newUserData);
+      return { id: docRef.id, ...newUserData };
+    } catch (error) {
+      console.error("Erro ao criar usuário:", error);
+      throw error;
+    } finally {
+      setIsCreatingNewUser(false);
+    }
+  }, []);
 
   // Fetch user data with caching
   const fetchUserData = useCallback(async (userId) => {
     try {
-      // Try to get from cache first
       const cachedData = await AsyncStorage.getItem(`userData_${userId}`);
       if (cachedData) {
         const parsed = JSON.parse(cachedData);
         setUserData(parsed);
+        return parsed;
       }
 
-      // Fetch fresh data from Firestore
       const userQuery = query(
         collection(LarApp_db, "user"),
         where("uid", "==", userId)
@@ -48,180 +86,150 @@ export const AuthProvider = ({ children }) => {
       const querySnapshot = await getDocs(userQuery);
 
       if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        const data = userDoc.data();
+        const data = querySnapshot.docs[0].data();
         setUserData(data);
-        // Update cache
         await AsyncStorage.setItem(`userData_${userId}`, JSON.stringify(data));
         return data;
-      } else {
-        console.error("Usuário não encontrado na coleção user");
-        setError("Usuário não encontrado");
-        return null;
       }
+      return null;
     } catch (error) {
       console.error("Erro ao buscar dados do user:", error);
-      setError("Erro ao buscar dados do usuário");
       return null;
     }
   }, []);
 
-  // Fetch rooms data
-  const fetchQuartos = useCallback(async () => {
+  // Setup real-time listeners
+  const setupListeners = useCallback(async (role) => {
+    // Limpar listeners anteriores
+    Object.values(unsubscribesRef.current).forEach((unsub) => unsub?.());
+    unsubscribesRef.current = {};
+
     try {
-      const quartosRef = collection(LarApp_db, "quartos");
-      // Usando onSnapshot para atualização em tempo real
-      const unsubscribe = onSnapshot(quartosRef, (snapshot) => {
-        const quartosData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setQuartos(quartosData);
-      });
-      return unsubscribe;
-    } catch (error) {
-      console.error("Erro ao buscar quartos:", error);
-      setError("Erro ao buscar dados dos quartos");
-      return () => {};
-    }
-  }, []);
-
-  // Fetch staff data
-  const fetchFuncionarios = useCallback(async () => {
-    try {
-      const funcionariosRef = collection(LarApp_db, "funcionarios");
-      // Usando onSnapshot para atualização em tempo real
-      const unsubscribe = onSnapshot(funcionariosRef, (snapshot) => {
-        const funcionariosData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setFuncionarios(funcionariosData);
-      });
-      return unsubscribe;
-    } catch (error) {
-      console.error("Erro ao buscar funcionários:", error);
-      setError("Erro ao buscar dados dos funcionários");
-      return () => {};
-    }
-  }, []);
-
-  // Fetch residents data
-  const fetchUtentes = useCallback(async () => {
-    try {
-      const utentesRef = collection(LarApp_db, "utentes");
-      // Usando onSnapshot para atualização em tempo real
-      const unsubscribe = onSnapshot(utentesRef, (snapshot) => {
-        const utentesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setUtentes(utentesData);
-      });
-      return unsubscribe;
-    } catch (error) {
-      console.error("Erro ao buscar utentes:", error);
-      setError("Erro ao buscar dados dos utentes");
-      return () => {};
-    }
-  }, []);
-
-  // Clear error state
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
-
-  // Initialize data based on user role
-  const initializeRoleData = useCallback(
-    async (role) => {
-      let unsubscribes = [];
-
+      // Configurar listeners baseado na role
       switch (role?.toLowerCase()) {
         case "admin":
-          const [unsubQuartos, unsubFunc, unsubUtentes] = await Promise.all([
-            fetchQuartos(),
-            fetchFuncionarios(),
-            fetchUtentes(),
-          ]);
-          unsubscribes = [unsubQuartos, unsubFunc, unsubUtentes];
+          unsubscribesRef.current.quartos = onSnapshot(
+            collection(LarApp_db, "quartos"),
+            (snapshot) => {
+              setQuartos(
+                snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+              );
+            }
+          );
+
+          unsubscribesRef.current.funcionarios = onSnapshot(
+            collection(LarApp_db, "funcionarios"),
+            (snapshot) => {
+              setFuncionarios(
+                snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+              );
+            }
+          );
+
+          unsubscribesRef.current.utentes = onSnapshot(
+            collection(LarApp_db, "utentes"),
+            (snapshot) => {
+              setUtentes(
+                snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+              );
+            }
+          );
           break;
+
         case "funcionario":
-          const [unsubQuartos2, unsubUtentes2] = await Promise.all([
-            fetchQuartos(),
-            fetchUtentes(),
-          ]);
-          unsubscribes = [unsubQuartos2, unsubUtentes2];
+          unsubscribesRef.current.quartos = onSnapshot(
+            collection(LarApp_db, "quartos"),
+            (snapshot) => {
+              setQuartos(
+                snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+              );
+            }
+          );
+
+          unsubscribesRef.current.utentes = onSnapshot(
+            collection(LarApp_db, "utentes"),
+            (snapshot) => {
+              setUtentes(
+                snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+              );
+            }
+          );
           break;
+
         case "utente":
-          const [unsubQuartos3] = await Promise.all([fetchQuartos()]);
-          unsubscribes = [unsubQuartos3];
+          unsubscribesRef.current.quartos = onSnapshot(
+            collection(LarApp_db, "quartos"),
+            (snapshot) => {
+              setQuartos(
+                snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+              );
+            }
+          );
           break;
       }
+    } catch (error) {
+      console.error("Erro ao configurar listeners:", error);
+    }
+  }, []);
 
-      return () => {
-        unsubscribes.forEach((unsub) => unsub && unsub());
-      };
-    },
-    [fetchQuartos, fetchFuncionarios, fetchUtentes]
-  );
-
+  // Efeito principal para gerenciar autenticação
   useEffect(() => {
-    let unsubscribeRole = () => {};
-
-    const checkUser = async () => {
+    const initializeAuth = async () => {
       try {
-        console.log("Verificando usuário...");
-        const userDataFromStorage = await AsyncStorage.getItem("user");
-        if (userDataFromStorage) {
-          console.log("Dados do usuário encontrados no storage");
-          const storedUser = JSON.parse(userDataFromStorage);
-          setUser(storedUser);
-          const userData = await fetchUserData(storedUser.uid);
-          console.log("Dados do usuário buscados:", userData);
-          if (userData) {
-            console.log("Inicializando dados do papel:", userData.role);
-            unsubscribeRole = await initializeRoleData(userData.role);
+        const storedUser = await AsyncStorage.getItem("user");
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          const userDataResult = await fetchUserData(parsedUser.uid);
+          if (userDataResult) {
+            await setupListeners(userDataResult.role);
           }
         }
-      } catch (e) {
-        console.error("Erro ao inicializar dados do usuário:", e);
-        setError("Erro ao inicializar dados do usuário");
+      } catch (error) {
+        console.error("Erro na inicialização:", error);
       } finally {
         setLoading(false);
+        isInitializedRef.current = true;
       }
     };
 
-    checkUser();
-
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("Estado de autenticação alterado:", firebaseUser?.email);
-      if (firebaseUser) {
+      if (isCreatingNewUser) {
+        return;
+      }
+
+      if (firebaseUser && (!user || user.uid !== firebaseUser.uid)) {
+        if (userData?.role === "admin") {
+          return;
+        }
+
         setUser(firebaseUser);
         await AsyncStorage.setItem("user", JSON.stringify(firebaseUser));
-        const userData = await fetchUserData(firebaseUser.uid);
-        console.log("Dados do usuário após auth change:", userData);
-        if (userData) {
-          console.log(
-            "Inicializando dados do papel após auth change:",
-            userData.role
-          );
-          unsubscribeRole = await initializeRoleData(userData.role);
+        const newUserData = await fetchUserData(firebaseUser.uid);
+        if (newUserData) {
+          await setupListeners(newUserData.role);
         }
-      } else {
+      } else if (!firebaseUser && !isCreatingNewUser) {
         setUser(null);
         setUserData(null);
         setQuartos([]);
         setFuncionarios([]);
         setUtentes([]);
         await AsyncStorage.clear();
+        Object.values(unsubscribesRef.current).forEach((unsub) => unsub?.());
+        unsubscribesRef.current = {};
       }
     });
 
+    if (!isInitializedRef.current) {
+      initializeAuth();
+    }
+
     return () => {
       unsubscribeAuth();
-      unsubscribeRole();
+      Object.values(unsubscribesRef.current).forEach((unsub) => unsub?.());
     };
-  }, [fetchUserData, initializeRoleData]);
+  }, [fetchUserData, setupListeners, isCreatingNewUser, user, userData]);
 
   const contextValue = {
     user,
@@ -229,15 +237,11 @@ export const AuthProvider = ({ children }) => {
     userData,
     loading,
     error,
-    clearError,
+    clearError: useCallback(() => setError(null), []),
     quartos,
     funcionarios,
     utentes,
-    fetchUserData,
-    fetchQuartos,
-    fetchFuncionarios,
-    fetchUtentes,
-    initializeRoleData,
+    createUserWithRole,
   };
 
   return (
@@ -245,4 +249,12 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
+  }
+  return context;
+};
+
+export default AuthContext;

@@ -1,54 +1,92 @@
-import { useState, useCallback } from 'react';
-import { collection, doc, addDoc, updateDoc, getDocs, query, where } from 'firebase/firestore';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, LarApp_db } from '../firebaseConfig';
+import { useState, useCallback } from "react";
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth, LarApp_db } from "../firebaseConfig";
+import { useAuth } from "./AuthContext";
 
 export const useUtentes = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { createUserWithRole } = useAuth();
 
   // Add new resident
-  const addUtente = useCallback(async (utenteData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Create authentication account
-      const { email, password, ...restData } = utenteData;
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      // Add to Firestore
-      const userData = {
-        ...restData,
-        email,
-        role: 'utente',
-        uid: userCredential.user.uid,
-        createdAt: new Date(),
-        status: 'ativo'
-      };
+  const addUtente = useCallback(
+    async (utenteData) => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Create authentication account
+        const { email, password, ...restData } = utenteData;
 
-      await addDoc(collection(LarApp_db, 'user'), userData);
-      return { id: userCredential.user.uid, ...userData };
-    } catch (err) {
-      setError('Erro ao adicionar utente: ' + err.message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        // Armazenar o usuário atual
+        const currentUser = auth.currentUser;
+
+        // Criar conta de autenticação em um contexto separado
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+        // Forçar reconexão com o usuário admin
+        if (currentUser) {
+          await auth.updateCurrentUser(currentUser);
+        }
+
+        // Add to user collection with role
+        const userData = {
+          ...restData,
+          email,
+          uid: userCredential.user.uid,
+        };
+
+        const userDoc = await createUserWithRole(userData, "utente");
+
+        // Add to utentes collection
+        const utenteDoc = {
+          ...restData,
+          id: userCredential.user.uid,
+          email,
+          createdAt: new Date(),
+          status: "ativo",
+        };
+
+        await addDoc(collection(LarApp_db, "utentes"), utenteDoc);
+
+        console.log("Utente criado com sucesso:", email);
+        return { id: userCredential.user.uid, ...utenteDoc };
+      } catch (err) {
+        console.error("Erro ao criar utente:", err);
+        setError("Erro ao adicionar utente: " + err.message);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [createUserWithRole]
+  );
 
   // Update resident
   const updateUtente = useCallback(async (utenteId, utenteData) => {
     setLoading(true);
     setError(null);
     try {
-      const utenteRef = doc(LarApp_db, 'user', utenteId);
+      const utenteRef = doc(LarApp_db, "user", utenteId);
       await updateDoc(utenteRef, {
         ...utenteData,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
       return true;
     } catch (err) {
-      setError('Erro ao atualizar utente: ' + err.message);
+      setError("Erro ao atualizar utente: " + err.message);
       return false;
     } finally {
       setLoading(false);
@@ -60,16 +98,16 @@ export const useUtentes = () => {
     setLoading(true);
     setError(null);
     try {
-      const historicoRef = collection(LarApp_db, 'historicoMedico');
-      const q = query(historicoRef, where('utenteId', '==', utenteId));
+      const historicoRef = collection(LarApp_db, "historicoMedico");
+      const q = query(historicoRef, where("utenteId", "==", utenteId));
       const historicoSnap = await getDocs(q);
-      
-      return historicoSnap.docs.map(doc => ({
+
+      return historicoSnap.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
     } catch (err) {
-      setError('Erro ao buscar histórico médico: ' + err.message);
+      setError("Erro ao buscar histórico médico: " + err.message);
       return [];
     } finally {
       setLoading(false);
@@ -81,15 +119,15 @@ export const useUtentes = () => {
     setLoading(true);
     setError(null);
     try {
-      const historicoRef = collection(LarApp_db, 'historicoMedico');
+      const historicoRef = collection(LarApp_db, "historicoMedico");
       const docRef = await addDoc(historicoRef, {
         utenteId,
         ...registroData,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
       return { id: docRef.id, ...registroData };
     } catch (err) {
-      setError('Erro ao adicionar registro médico: ' + err.message);
+      setError("Erro ao adicionar registro médico: " + err.message);
       return null;
     } finally {
       setLoading(false);
@@ -101,20 +139,20 @@ export const useUtentes = () => {
     setLoading(true);
     setError(null);
     try {
-      const atividadesRef = collection(LarApp_db, 'atividades');
+      const atividadesRef = collection(LarApp_db, "atividades");
       const q = query(
         atividadesRef,
-        where('utenteId', '==', utenteId),
-        where('status', '==', 'ativo')
+        where("utenteId", "==", utenteId),
+        where("status", "==", "ativo")
       );
-      
+
       const atividadesSnap = await getDocs(q);
-      return atividadesSnap.docs.map(doc => ({
+      return atividadesSnap.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
     } catch (err) {
-      setError('Erro ao buscar atividades: ' + err.message);
+      setError("Erro ao buscar atividades: " + err.message);
       return [];
     } finally {
       setLoading(false);
@@ -126,14 +164,14 @@ export const useUtentes = () => {
     setLoading(true);
     setError(null);
     try {
-      const utenteRef = doc(LarApp_db, 'user', utenteId);
+      const utenteRef = doc(LarApp_db, "user", utenteId);
       await updateDoc(utenteRef, {
         quartoId,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
       return true;
     } catch (err) {
-      setError('Erro ao atualizar quarto: ' + err.message);
+      setError("Erro ao atualizar quarto: " + err.message);
       return false;
     } finally {
       setLoading(false);
@@ -149,6 +187,6 @@ export const useUtentes = () => {
     addRegistroMedico,
     getAtividades,
     updateQuarto,
-    clearError: () => setError(null)
+    clearError: () => setError(null),
   };
-}; 
+};
