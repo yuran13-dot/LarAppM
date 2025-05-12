@@ -13,6 +13,7 @@ import {
   getDocs,
   query,
   where,
+  onSnapshot,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, LarApp_db } from "../firebaseConfig";
@@ -50,7 +51,6 @@ export const AuthProvider = ({ children }) => {
         await AsyncStorage.setItem(`userData_${userId}`, JSON.stringify(data));
         return data;
       } else {
-        console.log("Documento do user não encontrado!", userId);
         return null;
       }
     } catch (error) {
@@ -64,57 +64,59 @@ export const AuthProvider = ({ children }) => {
   const fetchQuartos = useCallback(async () => {
     try {
       const quartosRef = collection(LarApp_db, "quartos");
-      const quartosSnap = await getDocs(quartosRef);
-      const quartosData = quartosSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setQuartos(quartosData);
-      return quartosData;
+      // Usando onSnapshot para atualização em tempo real
+      const unsubscribe = onSnapshot(quartosRef, (snapshot) => {
+        const quartosData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setQuartos(quartosData);
+      });
+      return unsubscribe;
     } catch (error) {
       console.error("Erro ao buscar quartos:", error);
       setError("Erro ao buscar dados dos quartos");
-      return [];
+      return () => {};
     }
   }, []);
 
   // Fetch staff data
   const fetchFuncionarios = useCallback(async () => {
     try {
-      console.log("Buscando funcionários...");
-      const funcionariosRef = collection(LarApp_db, "funcionarios"); // Coleção específica para funcionários
-      const funcionariosSnap = await getDocs(funcionariosRef);
-      const funcionariosData = funcionariosSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      console.log("Dados dos funcionários:", funcionariosData);
-      setFuncionarios(funcionariosData);
-      return funcionariosData;
+      const funcionariosRef = collection(LarApp_db, "funcionarios");
+      // Usando onSnapshot para atualização em tempo real
+      const unsubscribe = onSnapshot(funcionariosRef, (snapshot) => {
+        const funcionariosData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setFuncionarios(funcionariosData);
+      });
+      return unsubscribe;
     } catch (error) {
       console.error("Erro ao buscar funcionários:", error);
       setError("Erro ao buscar dados dos funcionários");
-      return [];
+      return () => {};
     }
   }, []);
 
   // Fetch residents data
   const fetchUtentes = useCallback(async () => {
     try {
-      console.log("Buscando utentes...");
-      const utentesRef = collection(LarApp_db, "utentes"); // Coleção específica para utentes
-      const utentesSnap = await getDocs(utentesRef);
-      const utentesData = utentesSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      console.log("Dados dos utentes:", utentesData);
-      setUtentes(utentesData);
-      return utentesData;
+      const utentesRef = collection(LarApp_db, "utentes");
+      // Usando onSnapshot para atualização em tempo real
+      const unsubscribe = onSnapshot(utentesRef, (snapshot) => {
+        const utentesData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setUtentes(utentesData);
+      });
+      return unsubscribe;
     } catch (error) {
       console.error("Erro ao buscar utentes:", error);
       setError("Erro ao buscar dados dos utentes");
-      return [];
+      return () => {};
     }
   }, []);
 
@@ -126,26 +128,40 @@ export const AuthProvider = ({ children }) => {
   // Initialize data based on user role
   const initializeRoleData = useCallback(
     async (role) => {
+      let unsubscribes = [];
+
       switch (role?.toLowerCase()) {
         case "admin":
-          await Promise.all([
+          const [unsubQuartos, unsubFunc, unsubUtentes] = await Promise.all([
             fetchQuartos(),
             fetchFuncionarios(),
             fetchUtentes(),
           ]);
+          unsubscribes = [unsubQuartos, unsubFunc, unsubUtentes];
           break;
         case "funcionario":
-          await Promise.all([fetchQuartos(), fetchUtentes()]);
+          const [unsubQuartos2, unsubUtentes2] = await Promise.all([
+            fetchQuartos(),
+            fetchUtentes(),
+          ]);
+          unsubscribes = [unsubQuartos2, unsubUtentes2];
           break;
         case "utente":
-          await fetchQuartos();
+          const [unsubQuartos3] = await Promise.all([fetchQuartos()]);
+          unsubscribes = [unsubQuartos3];
           break;
       }
+
+      return () => {
+        unsubscribes.forEach((unsub) => unsub && unsub());
+      };
     },
     [fetchQuartos, fetchFuncionarios, fetchUtentes]
   );
 
   useEffect(() => {
+    let unsubscribeRole = () => {};
+
     const checkUser = async () => {
       try {
         const userDataFromStorage = await AsyncStorage.getItem("user");
@@ -154,7 +170,7 @@ export const AuthProvider = ({ children }) => {
           setUser(storedUser);
           const userData = await fetchUserData(storedUser.uid);
           if (userData) {
-            await initializeRoleData(userData.role);
+            unsubscribeRole = await initializeRoleData(userData.role);
           }
         }
       } catch (e) {
@@ -167,13 +183,13 @@ export const AuthProvider = ({ children }) => {
 
     checkUser();
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
         await AsyncStorage.setItem("user", JSON.stringify(firebaseUser));
         const userData = await fetchUserData(firebaseUser.uid);
         if (userData) {
-          await initializeRoleData(userData.role);
+          unsubscribeRole = await initializeRoleData(userData.role);
         }
       } else {
         setUser(null);
@@ -185,7 +201,10 @@ export const AuthProvider = ({ children }) => {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      unsubscribeRole();
+    };
   }, [fetchUserData, initializeRoleData]);
 
   const contextValue = {

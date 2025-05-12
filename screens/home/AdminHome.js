@@ -96,7 +96,6 @@ export default function AdminHome() {
             <Icon name="people" size={24} color="#007bff" />
             <Text style={styles.statNumber}>{utentes.length}</Text>
             <Text style={styles.statLabel}>Utentes</Text>
-            <Text style={styles.statSubtext}>Total registrado</Text>
           </View>
           <View style={styles.statCard}>
             <Icon name="person" size={24} color="#007bff" />
