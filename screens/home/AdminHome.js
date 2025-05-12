@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -12,8 +12,30 @@ import { useAuth } from "../../hooks/AuthContext";
 import Icon from "react-native-vector-icons/Ionicons";
 
 export default function AdminHome() {
-  const { user, userData, quartos, funcionarios, utentes } = useAuth();
+  const {
+    user,
+    userData,
+    quartos,
+    funcionarios,
+    utentes,
+    fetchFuncionarios,
+    fetchUtentes,
+  } = useAuth();
   const navigation = useNavigation();
+
+  useEffect(() => {
+    const loadData = async () => {
+      console.log("Carregando dados...");
+      console.log("UserData:", userData);
+      if (userData?.role === "admin") {
+        await Promise.all([fetchFuncionarios(), fetchUtentes()]);
+      }
+      console.log("Funcionários:", funcionarios.length);
+      console.log("Utentes:", utentes.length);
+    };
+
+    loadData();
+  }, []);
 
   const menuItems = [
     {
@@ -72,18 +94,23 @@ export default function AdminHome() {
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Icon name="people" size={24} color="#007bff" />
-            <Text style={styles.statNumber}>{utentes.length}</Text> 
+            <Text style={styles.statNumber}>{utentes.length}</Text>
             <Text style={styles.statLabel}>Utentes</Text>
+            <Text style={styles.statSubtext}>Total registrado</Text>
           </View>
           <View style={styles.statCard}>
             <Icon name="person" size={24} color="#007bff" />
-            <Text style={styles.statNumber}>{funcionarios.length}</Text> 
+            <Text style={styles.statNumber}>{funcionarios.length}</Text>
             <Text style={styles.statLabel}>Funcionários</Text>
+            <Text style={styles.statSubtext}>Ativos</Text>
           </View>
           <View style={styles.statCard}>
             <Icon name="bed" size={24} color="#007bff" />
-            <Text style={styles.statNumber}>{quartos.length}</Text>          
-               <Text style={styles.statLabel}>Quartos</Text>
+            <Text style={styles.statNumber}>{quartos.length}</Text>
+            <Text style={styles.statLabel}>Quartos</Text>
+            <Text style={styles.statSubtext}>
+              Disponíveis: {quartos.filter((q) => q.estado === "Livre").length}
+            </Text>
           </View>
         </View>
       </View>
@@ -192,15 +219,22 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   statNumber: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#333",
+    color: "#007bff",
     marginTop: 8,
   },
   statLabel: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "600",
+    marginTop: 4,
+  },
+  statSubtext: {
     fontSize: 12,
     color: "#666",
-    marginTop: 4,
+    marginTop: 2,
+    textAlign: "center",
   },
   infoSection: {
     padding: 20,

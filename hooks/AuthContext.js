@@ -1,9 +1,22 @@
 // hooks/AuthContext.js
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, LarApp_db } from '../firebaseConfig';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, LarApp_db } from "../firebaseConfig";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AuthContext = createContext();
 
@@ -27,9 +40,9 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Fetch fresh data from Firestore
-      const userDocRef = doc(LarApp_db, 'user', userId);
+      const userDocRef = doc(LarApp_db, "user", userId);
       const userDoc = await getDoc(userDocRef);
-      
+
       if (userDoc.exists()) {
         const data = userDoc.data();
         setUserData(data);
@@ -37,12 +50,12 @@ export const AuthProvider = ({ children }) => {
         await AsyncStorage.setItem(`userData_${userId}`, JSON.stringify(data));
         return data;
       } else {
-        console.log('Documento do user não encontrado!', userId);
+        console.log("Documento do user não encontrado!", userId);
         return null;
       }
     } catch (error) {
-      console.error('Erro ao buscar dados do user:', error);
-      setError('Erro ao buscar dados do usuário');
+      console.error("Erro ao buscar dados do user:", error);
+      setError("Erro ao buscar dados do usuário");
       return null;
     }
   }, []);
@@ -50,17 +63,17 @@ export const AuthProvider = ({ children }) => {
   // Fetch rooms data
   const fetchQuartos = useCallback(async () => {
     try {
-      const quartosRef = collection(LarApp_db, 'quartos');
+      const quartosRef = collection(LarApp_db, "quartos");
       const quartosSnap = await getDocs(quartosRef);
-      const quartosData = quartosSnap.docs.map(doc => ({
+      const quartosData = quartosSnap.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
       setQuartos(quartosData);
       return quartosData;
     } catch (error) {
-      console.error('Erro ao buscar quartos:', error);
-      setError('Erro ao buscar dados dos quartos');
+      console.error("Erro ao buscar quartos:", error);
+      setError("Erro ao buscar dados dos quartos");
       return [];
     }
   }, []);
@@ -68,18 +81,19 @@ export const AuthProvider = ({ children }) => {
   // Fetch staff data
   const fetchFuncionarios = useCallback(async () => {
     try {
-      const funcionariosRef = collection(LarApp_db, 'user');
-      const q = query(funcionariosRef, where('role', '==', 'funcionario'));
-      const funcionariosSnap = await getDocs(q);
-      const funcionariosData = funcionariosSnap.docs.map(doc => ({
+      console.log("Buscando funcionários...");
+      const funcionariosRef = collection(LarApp_db, "funcionarios"); // Coleção específica para funcionários
+      const funcionariosSnap = await getDocs(funcionariosRef);
+      const funcionariosData = funcionariosSnap.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
+      console.log("Dados dos funcionários:", funcionariosData);
       setFuncionarios(funcionariosData);
       return funcionariosData;
     } catch (error) {
-      console.error('Erro ao buscar funcionários:', error);
-      setError('Erro ao buscar dados dos funcionários');
+      console.error("Erro ao buscar funcionários:", error);
+      setError("Erro ao buscar dados dos funcionários");
       return [];
     }
   }, []);
@@ -87,18 +101,19 @@ export const AuthProvider = ({ children }) => {
   // Fetch residents data
   const fetchUtentes = useCallback(async () => {
     try {
-      const utentesRef = collection(LarApp_db, 'user');
-      const q = query(utentesRef, where('role', '==', 'utente'));
-      const utentesSnap = await getDocs(q);
-      const utentesData = utentesSnap.docs.map(doc => ({
+      console.log("Buscando utentes...");
+      const utentesRef = collection(LarApp_db, "utentes"); // Coleção específica para utentes
+      const utentesSnap = await getDocs(utentesRef);
+      const utentesData = utentesSnap.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
+      console.log("Dados dos utentes:", utentesData);
       setUtentes(utentesData);
       return utentesData;
     } catch (error) {
-      console.error('Erro ao buscar utentes:', error);
-      setError('Erro ao buscar dados dos utentes');
+      console.error("Erro ao buscar utentes:", error);
+      setError("Erro ao buscar dados dos utentes");
       return [];
     }
   }, []);
@@ -109,31 +124,31 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Initialize data based on user role
-  const initializeRoleData = useCallback(async (role) => {
-    switch (role?.toLowerCase()) {
-      case 'admin':
-        await Promise.all([
-          fetchQuartos(),
-          fetchFuncionarios(),
-          fetchUtentes()
-        ]);
-        break;
-      case 'funcionario':
-        await Promise.all([
-          fetchQuartos(),
-          fetchUtentes()
-        ]);
-        break;
-      case 'utente':
-        await fetchQuartos();
-        break;
-    }
-  }, [fetchQuartos, fetchFuncionarios, fetchUtentes]);
+  const initializeRoleData = useCallback(
+    async (role) => {
+      switch (role?.toLowerCase()) {
+        case "admin":
+          await Promise.all([
+            fetchQuartos(),
+            fetchFuncionarios(),
+            fetchUtentes(),
+          ]);
+          break;
+        case "funcionario":
+          await Promise.all([fetchQuartos(), fetchUtentes()]);
+          break;
+        case "utente":
+          await fetchQuartos();
+          break;
+      }
+    },
+    [fetchQuartos, fetchFuncionarios, fetchUtentes]
+  );
 
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const userDataFromStorage = await AsyncStorage.getItem('user');
+        const userDataFromStorage = await AsyncStorage.getItem("user");
         if (userDataFromStorage) {
           const storedUser = JSON.parse(userDataFromStorage);
           setUser(storedUser);
@@ -144,7 +159,7 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (e) {
         console.error(e);
-        setError('Erro ao inicializar dados do usuário');
+        setError("Erro ao inicializar dados do usuário");
       } finally {
         setLoading(false);
       }
@@ -155,7 +170,7 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        await AsyncStorage.setItem('user', JSON.stringify(firebaseUser));
+        await AsyncStorage.setItem("user", JSON.stringify(firebaseUser));
         const userData = await fetchUserData(firebaseUser.uid);
         if (userData) {
           await initializeRoleData(userData.role);
@@ -187,13 +202,11 @@ export const AuthProvider = ({ children }) => {
     fetchQuartos,
     fetchFuncionarios,
     fetchUtentes,
-    initializeRoleData
+    initializeRoleData,
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 
