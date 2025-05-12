@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../hooks/AuthContext";
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -28,22 +28,10 @@ export default function AdminHome() {
       description: 'Adicionar e gerenciar funcionários'
     },
     {
-      title: 'Agenda',
-      icon: 'calendar',
-      onPress: () => navigation.navigate('Agenda'),
-      description: 'Visualizar e gerenciar agenda'
-    },
-    {
       title: 'Relatórios',
       icon: 'document-text',
       onPress: () => navigation.navigate('RelatorioScreen'),
       description: 'Gerar e visualizar relatórios'
-    },
-    {
-      title: 'Configurações',
-      icon: 'settings',
-      onPress: () => navigation.navigate('Settings'),
-      description: 'Configurações do sistema'
     }
   ];
 
@@ -124,12 +112,16 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   menuGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     padding: 15,
+    justifyContent: 'space-between',
   },
   menuItem: {
     backgroundColor: '#fff',
     borderRadius: 10,
-    padding: 20,
+    padding: 15,
+    width: '48%', // quase metade da largura com espaço
     marginBottom: 15,
     elevation: 2,
     shadowColor: '#000',
@@ -148,13 +140,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   menuTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 5,
   },
   menuDescription: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
   },
   statsSection: {
@@ -221,4 +213,4 @@ const styles = StyleSheet.create({
     color: "#666",
     flex: 1,
   },
-}); 
+});
