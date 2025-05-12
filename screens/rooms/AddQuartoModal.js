@@ -3,6 +3,8 @@ import { Modal, Text, TextInput, TouchableOpacity, PanResponder, Animated, Platf
 import Icon from 'react-native-vector-icons/Ionicons';
 import { collection, addDoc } from 'firebase/firestore';
 import { LarApp_db } from '../../firebaseConfig';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function AddQuartoModal({ visible, onClose }) {
   const [numero, setNumero] = useState('');
@@ -43,11 +45,15 @@ export default function AddQuartoModal({ visible, onClose }) {
   const handleSave = async () => {
     if (numero.trim()) {
       try {
-        await addDoc(collection(LarApp_db, 'quartos'), {
+        const newRoom = {
+          id: uuidv4(),
           numero: numero.trim(),
           estado: estado,
           tipo: tipo,
-        });
+          ...(tipo === 'Individual' ? { utenteId: null } : { utentesIds: [] }),
+        };
+
+        await addDoc(collection(LarApp_db, 'quartos'), newRoom);
 
         Alert.alert('Sucesso', 'Quarto adicionado com sucesso!');
         onClose();

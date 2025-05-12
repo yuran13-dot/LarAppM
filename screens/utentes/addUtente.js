@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Modal, Text, TextInput, TouchableOpacity, PanResponder, Animated, Platform, KeyboardAvoidingView, ScrollView, Dimensions, StyleSheet, View, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { collection, addDoc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { LarApp_db } from '../../firebaseConfig';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,7 +16,7 @@ export default function AddUtenteModal({ visible, onClose }) {
   const [email, setEmail] = useState('');
   const [numeroUtente, setNumeroUtente] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [listaQuartos, setListaQuartos] = useState([]);  // Quartos disponíveis
+  const [listaQuartos, setListaQuartos] = useState([]);
 
   const pan = useRef(new Animated.ValueXY()).current;
   const [modalHeight, setModalHeight] = useState(0);
@@ -59,6 +59,7 @@ export default function AddUtenteModal({ visible, onClose }) {
   const handleSave = async () => {
     if (nome.trim() && quarto && contacto.trim() && dataNascimento.trim() && email.trim()) {
       try {
+        // 1. Adiciona o utente
         const novoUtente = {
           numeroUtente,
           nome: nome.trim(),
@@ -69,7 +70,32 @@ export default function AddUtenteModal({ visible, onClose }) {
           createdAt: new Date(),
         };
 
-        await addDoc(collection(LarApp_db, 'utentes'), novoUtente);
+        const docRef = await addDoc(collection(LarApp_db, 'utentes'), novoUtente);
+        const utenteId = docRef.id;
+
+        // 2. Busca o quarto pelo numero
+        const querySnapshot = await getDocs(collection(LarApp_db, 'quartos'));
+        let quartoDoc = null;
+        querySnapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data.numero == quarto) {  // == porque `numero` pode ser string ou number
+            quartoDoc = { id: docSnap.id, ...data };
+          }
+        });
+
+        if (!quartoDoc) {
+          Alert.alert('Erro', 'Quarto não encontrado.');
+          return;
+        }
+
+        // 3. Atualiza o quarto
+        const quartoRef = doc(LarApp_db, 'quartos', quartoDoc.id);
+        if (quartoDoc.tipo === 'Individual') {
+          await updateDoc(quartoRef, { utenteId: utenteId, estado: 'Ocupado' });
+        } else if (quartoDoc.tipo === 'Casal') {
+          const novosUtentes = quartoDoc.utentesIds ? [...quartoDoc.utentesIds, utenteId] : [utenteId];
+          await updateDoc(quartoRef, { utentesIds: novosUtentes, estado: novosUtentes.length > 0 ? 'Ocupado' : 'Livre' });
+        }
 
         Alert.alert('Sucesso', 'Utente adicionado com sucesso!');
         limparCampos();
@@ -104,7 +130,6 @@ export default function AddUtenteModal({ visible, onClose }) {
     if (visible) {
       setNumeroUtente(uuidv4());
       carregarQuartosLivres();
-
       Animated.spring(modalAnimation, {
         toValue: 1,
         useNativeDriver: true,
@@ -159,7 +184,6 @@ export default function AddUtenteModal({ visible, onClose }) {
 
               <TextInput style={styles.input} placeholder="Nome" value={nome} onChangeText={setNome} />
 
-              {/* MELHORADO SELECT DE QUARTO */}
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={quarto}
@@ -181,7 +205,6 @@ export default function AddUtenteModal({ visible, onClose }) {
                 keyboardType="phone-pad"
               />
 
-              {/* MELHORADO PICKER DE DATA */}
               <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
                 <Text style={{ color: dataNascimento ? '#000' : '#999' }}>
                   {dataNascimento ? dataNascimento : 'Selecionar Data de Nascimento'}
