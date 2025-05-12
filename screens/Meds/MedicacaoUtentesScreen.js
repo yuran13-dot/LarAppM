@@ -87,9 +87,6 @@ export default function MedicacaoUtentesScreen() {
       >
         <View style={styles.utenteInfo}>
           <Text style={styles.utenteName}>{item.nome}</Text>
-          <Text style={styles.utenteDetails}>
-            Nº Utente: {item.numeroUtente}
-          </Text>
           <Text style={styles.medicamentosCount}>
             Medicamentos: {medicamentosAtivos}
           </Text>
@@ -108,6 +105,12 @@ export default function MedicacaoUtentesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
         <Text style={styles.title}>Medicação dos Utentes</Text>
       </View>
 
@@ -147,16 +150,24 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
     padding: 20,
     paddingTop: 60,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
+  backButton: {
+    padding: 10,
+    marginRight: 10,
+    borderRadius: 8,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#333",
+    flex: 1,
   },
   searchContainer: {
     flexDirection: "row",

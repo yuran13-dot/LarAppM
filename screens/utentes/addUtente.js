@@ -41,6 +41,7 @@ export default function AddUtenteModal({ visible, onClose }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [numeroUtente, setNumeroUtente] = useState("");
+  const [status, setStatus] = useState("ativo");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [listaQuartos, setListaQuartos] = useState([]);
   const [quartoSelecionado, setQuartoSelecionado] = useState(null);
@@ -82,6 +83,7 @@ export default function AddUtenteModal({ visible, onClose }) {
     setEmail("");
     setPassword("");
     setNumeroUtente("");
+    setStatus("ativo");
     setQuartoSelecionado(null);
   };
 
@@ -117,7 +119,7 @@ export default function AddUtenteModal({ visible, onClose }) {
         email: email.trim(),
         role: "utente",
         createdAt: new Date(),
-        status: "ativo",
+        status: status,
       };
 
       // Adicionar à coleção de users primeiro
@@ -137,6 +139,7 @@ export default function AddUtenteModal({ visible, onClose }) {
         medicamentos: [],
         atividades: [],
         role: "utente",
+        status: status,
       };
 
       const docRef = await addDoc(collection(LarApp_db, "utentes"), novoUtente);
@@ -388,6 +391,18 @@ export default function AddUtenteModal({ visible, onClose }) {
               placeholder="Senha para acesso ao app"
               secureTextEntry
             />
+
+            <Text style={styles.label}>Status</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={status}
+                onValueChange={(itemValue) => setStatus(itemValue)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Ativo" value="ativo" />
+                <Picker.Item label="Inativo" value="inativo" />
+              </Picker>
+            </View>
 
             <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
               <Text style={styles.saveButtonText}>Salvar</Text>

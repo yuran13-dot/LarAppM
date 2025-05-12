@@ -7,64 +7,36 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-import { useUtentes } from "../../hooks/useUtentes";
+import { useFuncionarios } from "../../hooks/useFuncionarios";
 
-const GerenciarUtenteModal = ({ visible, onClose, utente }) => {
-  const { inativarUtente, ativarUtente, deletarUtente, loading } = useUtentes();
+const GerenciarFuncionarioModal = ({ visible, onClose, funcionario }) => {
+  const { inativarFuncionario, ativarFuncionario, loading } = useFuncionarios();
 
   const handleInativar = async () => {
     try {
-      const success = await inativarUtente(utente.id);
+      const success = await inativarFuncionario(funcionario.id);
       if (success) {
-        Alert.alert("Sucesso", "Utente inativado com sucesso");
+        Alert.alert("Sucesso", "Funcionário inativado com sucesso");
         onClose();
       }
     } catch (error) {
-      Alert.alert("Erro", "Erro ao inativar utente");
+      Alert.alert("Erro", "Erro ao inativar funcionário");
     }
   };
 
   const handleAtivar = async () => {
     try {
-      const success = await ativarUtente(utente.id);
+      const success = await ativarFuncionario(funcionario.id);
       if (success) {
-        Alert.alert("Sucesso", "Utente ativado com sucesso");
+        Alert.alert("Sucesso", "Funcionário ativado com sucesso");
         onClose();
       }
     } catch (error) {
-      Alert.alert("Erro", "Erro ao ativar utente");
+      Alert.alert("Erro", "Erro ao ativar funcionário");
     }
   };
 
-  const handleDeletar = async () => {
-    Alert.alert(
-      "Confirmar Deleção",
-      "Esta ação não pode ser desfeita. Deseja realmente deletar este utente?",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Deletar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const success = await deletarUtente(utente.id);
-              if (success) {
-                Alert.alert("Sucesso", "Utente deletado com sucesso");
-                onClose();
-              }
-            } catch (error) {
-              Alert.alert("Erro", "Erro ao deletar utente");
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  if (!visible || !utente) return null;
+  if (!visible || !funcionario) return null;
 
   return (
     <Modal
@@ -75,18 +47,18 @@ const GerenciarUtenteModal = ({ visible, onClose, utente }) => {
     >
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>Gerenciar Utente</Text>
+          <Text style={styles.title}>Gerenciar Funcionário</Text>
           <Text style={styles.subtitle}>
-            Escolha uma ação para o utente {utente.nome}
+            Escolha uma ação para o funcionário {funcionario.nome}
           </Text>
 
-          {utente.status === "ativo" ? (
+          {funcionario.status === "ativo" ? (
             <TouchableOpacity
               style={[styles.button, styles.inativarButton]}
               onPress={handleInativar}
               disabled={loading}
             >
-              <Text style={styles.buttonText}>Inativar Utente</Text>
+              <Text style={styles.buttonText}>Inativar Funcionário</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -94,17 +66,9 @@ const GerenciarUtenteModal = ({ visible, onClose, utente }) => {
               onPress={handleAtivar}
               disabled={loading}
             >
-              <Text style={styles.buttonText}>Ativar Utente</Text>
+              <Text style={styles.buttonText}>Ativar Funcionário</Text>
             </TouchableOpacity>
           )}
-
-          <TouchableOpacity
-            style={[styles.button, styles.deletarButton]}
-            onPress={handleDeletar}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>Deletar Permanentemente</Text>
-          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.button, styles.cancelarButton]}
@@ -165,9 +129,6 @@ const styles = StyleSheet.create({
   ativarButton: {
     backgroundColor: "#2ecc71",
   },
-  deletarButton: {
-    backgroundColor: "#e74c3c",
-  },
   cancelarButton: {
     backgroundColor: "#f8f9fa",
     borderWidth: 1,
@@ -179,4 +140,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GerenciarUtenteModal;
+export default GerenciarFuncionarioModal;

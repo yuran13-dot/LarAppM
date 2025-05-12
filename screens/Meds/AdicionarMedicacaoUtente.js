@@ -170,7 +170,6 @@ export default function AdicionarMedicacaoUtente({ route, navigation }) {
 
       <View style={styles.utenteInfo}>
         <Text style={styles.utenteNome}>{nome}</Text>
-        <Text style={styles.utenteNumero}>Nº Utente: {numeroUtente}</Text>
       </View>
 
       <View style={styles.form}>
