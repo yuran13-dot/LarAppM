@@ -1,8 +1,15 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Dimensions,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../hooks/AuthContext";
-import Icon from 'react-native-vector-icons/Ionicons';
+import Icon from "react-native-vector-icons/Ionicons";
 
 export default function AdminHome() {
   const { user, userData } = useAuth();
@@ -10,35 +17,37 @@ export default function AdminHome() {
 
   const menuItems = [
     {
-      title: 'Gestão de Utentes',
-      icon: 'people',
-      onPress: () => navigation.navigate('UtentesScreen'),
-      description: 'Adicionar, editar e gerenciar utentes'
+      title: "Gestão de Utentes",
+      icon: "people",
+      onPress: () => navigation.navigate("UtentesScreen"),
+      description: "Adicionar, editar e gerenciar utentes",
     },
     {
-      title: 'Gestão de Quartos',
-      icon: 'bed',
-      onPress: () => navigation.navigate('RoomsScreen'),
-      description: 'Gerenciar quartos e ocupação'
+      title: "Gestão de Quartos",
+      icon: "bed",
+      onPress: () => navigation.navigate("RoomsScreen"),
+      description: "Gerenciar quartos e ocupação",
     },
     {
-      title: 'Gestão de Funcionários',
-      icon: 'person',
-      onPress: () => navigation.navigate('FuncionarioScreen'),
-      description: 'Adicionar e gerenciar funcionários'
+      title: "Gestão de Funcionários",
+      icon: "person",
+      onPress: () => navigation.navigate("FuncionarioScreen"),
+      description: "Adicionar e gerenciar funcionários",
     },
     {
-      title: 'Relatórios',
-      icon: 'document-text',
-      onPress: () => navigation.navigate('RelatorioScreen'),
-      description: 'Gerar e visualizar relatórios'
-    }
+      title: "Relatórios",
+      icon: "document-text",
+      onPress: () => navigation.navigate("RelatorioScreen"),
+      description: "Gerar e visualizar relatórios",
+    },
   ];
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.welcomeText}>Bem-vindo(a), {userData?.name || 'Administrador'}</Text>
+        <Text style={styles.welcomeText}>
+          Bem-vindo(a), {userData?.name || "Administrador"}
+        </Text>
         <Text style={styles.subtitle}>Painel Administrativo</Text>
       </View>
 
@@ -83,7 +92,9 @@ export default function AdminHome() {
         <Text style={styles.sectionTitle}>Atividades Recentes</Text>
         <View style={styles.infoCard}>
           <Icon name="notifications-outline" size={24} color="#007bff" />
-          <Text style={styles.infoText}>Nenhuma atividade recente para mostrar</Text>
+          <Text style={styles.infoText}>
+            Nenhuma atividade recente para mostrar
+          </Text>
         </View>
       </View>
     </ScrollView>
@@ -93,38 +104,38 @@ export default function AdminHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
   },
   header: {
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   welcomeText: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: "#666",
     marginTop: 5,
   },
   menuGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     padding: 15,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   menuItem: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 10,
     padding: 15,
-    width: '48%', // quase metade da largura com espaço
+    width: "48%", // quase metade da largura com espaço
     marginBottom: 15,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -133,21 +144,21 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   iconContainer: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
     padding: 15,
     borderRadius: 10,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 10,
   },
   menuTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
     marginBottom: 5,
   },
   menuDescription: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
   },
   statsSection: {
     padding: 20,

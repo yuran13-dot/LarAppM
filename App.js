@@ -1,22 +1,23 @@
-import React from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { AuthProvider, useAuth } from './hooks/AuthContext';
-import LoginScreen from './screens/login/login';
-import HomeScreen from './screens/home/home';
-import ForgotPasswordScreen from './screens/recuperar/recuperar';
-import ProfileScreen from './screens/profile/ProfileScreen'; // Tela de Perfil
-import EditProfileScreen from './screens/profile/EditProfile'; // Tela de Editar Perfil
-import AgendaScreen from './screens/agenda/AgendaScreen'; // Tela de Agenda
-import ChatScreen from './screens/chat/ChatScreen'; // Tela de Chat
-import ProfileStack from './screens/profile/ProfileStack'; // Stack de Perfil
-import { ActivityIndicator, View } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import RoomsScreen from './screens/rooms/RoomsScreen';
-import HomeStack from './navigation/HomeStack'; // Stack de Home
-import EditUtenteScreen from './screens/profile/EditProfile';
+import React from "react";
+import { StatusBar } from "expo-status-bar";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { AuthProvider, useAuth } from "./hooks/AuthContext";
+import LoginScreen from "./screens/login/login";
+import HomeScreen from "./screens/home/home";
+import ForgotPasswordScreen from "./screens/recuperar/recuperar";
+import ProfileScreen from "./screens/profile/ProfileScreen"; // Tela de Perfil
+import EditProfileScreen from "./screens/profile/EditProfile"; // Tela de Editar Perfil
+import AgendaScreen from "./screens/agenda/AgendaScreen"; // Tela de Agenda
+import ChatScreen from "./screens/chat/ChatScreen"; // Tela de Chat
+import ProfileStack from "./screens/profile/ProfileStack"; // Stack de Perfil
+import { ActivityIndicator, View } from "react-native";
+import Icon from "react-native-vector-icons/Ionicons";
+import RoomsScreen from "./screens/rooms/RoomsScreen";
+import HomeStack from "./navigation/HomeStack"; // Stack de Home
+import EditUtenteScreen from "./screens/profile/EditProfile";
+import LarScreen from "./screens/lar/LarScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -49,9 +50,11 @@ function AuthStack() {
         component={RoomsScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="EditUtente" component={EditUtenteScreen} options={{ headerShown: false }} />
-
-                                                                         
+      <Stack.Screen
+        name="EditUtente"
+        component={EditUtenteScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 }
@@ -62,8 +65,8 @@ function AppTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#007bff',
-        tabBarInactiveTintColor: '#a9a9a9',
+        tabBarActiveTintColor: "#007bff",
+        tabBarInactiveTintColor: "#a9a9a9",
       }}
     >
       <Tab.Screen
@@ -85,6 +88,15 @@ function AppTabs() {
         }}
       />
       <Tab.Screen
+        name="Gestão do Lar"
+        component={LarScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="business-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="Chat"
         component={ChatScreen}
         options={{
@@ -102,19 +114,16 @@ function AppTabs() {
           ),
         }}
       />
-    
-      
     </Tab.Navigator>
   );
 }
-
 
 function RootNavigator() {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color="#007bff" />
       </View>
     );
