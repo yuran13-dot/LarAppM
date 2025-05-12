@@ -6,42 +6,42 @@ const ActionButtons = ({ navigation }) => (
   <View style={styles.buttonContainer}>
     <TouchableOpacity
       style={styles.button}
-      onPress={() => navigation.navigate("UserScreen")}
+      onPress={() => navigation.navigate("UtentesScreen")}
+    >
+      <Icon name="users" size={24} color="#fff" style={styles.icon} />
+      <Text style={styles.buttonText}>Utentes</Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.button}
+      onPress={() => navigation.navigate("RoomsScreen")}
+    >
+      <Icon name="bed" size={24} color="#fff" style={styles.icon} />
+      <Text style={styles.buttonText}>Quartos</Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.button}
+      onPress={() => navigation.navigate("FuncionarioScreen")}
     >
       <Icon name="user" size={24} color="#fff" style={styles.icon} />
-      <Text style={styles.buttonText}>Utente</Text>
+      <Text style={styles.buttonText}>Funcionários</Text>
     </TouchableOpacity>
     <TouchableOpacity
       style={styles.button}
-      onPress={() => navigation.navigate("MedicationScreen")}
-    >
-      <Icon name="medkit" size={24} color="#fff" style={styles.icon} />
-      <Text style={styles.buttonText}>Medicação</Text>
-    </TouchableOpacity>
-    <TouchableOpacity
-      style={styles.button}
-      onPress={() => navigation.navigate("HealthScreen")}
-    >
-      <Icon name="heartbeat" size={24} color="#fff" style={styles.icon} />
-      <Text style={styles.buttonText}>Saúde</Text>
-    </TouchableOpacity>
-    <TouchableOpacity
-      style={styles.button}
-      onPress={() => navigation.navigate("ActivitiesScreen")}
+      onPress={() => navigation.navigate("RelatorioScreen")}
     >
       <Icon name="list-alt" size={24} color="#fff" style={styles.icon} />
-      <Text style={styles.buttonText}>Atividades</Text>
+      <Text style={styles.buttonText}>Relatório</Text>
     </TouchableOpacity>
   </View>
 );
 
 const styles = StyleSheet.create({
   buttonContainer: {
-    flexDirection: "row",  // Organiza os botões em linha
-    flexWrap: "wrap",      // Permite que os botões quebrem para a linha seguinte
-    justifyContent: "space-around", // Distribui os botões com espaçamento entre eles
-    marginTop: 40,         // Adiciona uma margem superior
-    paddingHorizontal: 10, // Adiciona um pouco de espaçamento horizontal
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    marginTop: 40,
+    paddingHorizontal: 10,
   },
   button: {
     backgroundColor: "#007bff",
