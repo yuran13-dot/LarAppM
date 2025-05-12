@@ -12,7 +12,7 @@ import { useAuth } from "../../hooks/AuthContext";
 import Icon from "react-native-vector-icons/Ionicons";
 
 export default function AdminHome() {
-  const { user, userData } = useAuth();
+  const { user, userData, quartos, funcionarios, utentes } = useAuth();
   const navigation = useNavigation();
 
   const menuItems = [
@@ -72,18 +72,18 @@ export default function AdminHome() {
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Icon name="people" size={24} color="#007bff" />
-            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statNumber}>{utentes.length}</Text> 
             <Text style={styles.statLabel}>Utentes</Text>
           </View>
           <View style={styles.statCard}>
             <Icon name="person" size={24} color="#007bff" />
-            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statNumber}>{funcionarios.length}</Text> 
             <Text style={styles.statLabel}>Funcionários</Text>
           </View>
           <View style={styles.statCard}>
             <Icon name="bed" size={24} color="#007bff" />
-            <Text style={styles.statNumber}>0</Text>
-            <Text style={styles.statLabel}>Quartos</Text>
+            <Text style={styles.statNumber}>{quartos.length}</Text>          
+               <Text style={styles.statLabel}>Quartos</Text>
           </View>
         </View>
       </View>

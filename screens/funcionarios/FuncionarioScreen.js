@@ -19,31 +19,9 @@ export default function FuncionarioScreen() {
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedFuncionario, setSelectedFuncionario] = useState(null);
   const [isEditModalVisible, setEditModalVisible] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  
 
-  // Carregar funcionários do Firestore automaticamente
-  const handleDeleteFuncionario = (funcionarioId) => {
-    Alert.alert(
-      'Confirmar exclusão',
-      'Tem certeza que deseja excluir este funcionário?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const funcionarioRef = doc(LarApp_db, 'funcionarios', funcionarioId);
-              await deleteDoc(funcionarioRef);
-              setDeleteModalVisible(false);
-            } catch (error) {
-              console.error('Erro ao excluir funcionário:', error);
-            }
-          },
-        },
-      ]
-    );
-  };
+  
 
   
   useEffect(() => {
@@ -83,15 +61,6 @@ export default function FuncionarioScreen() {
           <Icon name="pencil-outline" size={20} color="#555" />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.iconAction}
-          onPress={() => {
-            setSelectedFuncionario(item);
-            setDeleteModalVisible(true);
-          }}
-        >
-          <Icon name="trash-outline" size={20} color="#d11a2a" />
-        </TouchableOpacity>
       </View>
     </View>
   );

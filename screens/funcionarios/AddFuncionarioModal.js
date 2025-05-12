@@ -29,7 +29,9 @@ export default function AddFuncionarioModal({ visible, onClose }) {
   const [dataNascimento, setDataNascimento] = useState(new Date());
   const [email, setEmail] = useState("");
   const [funcao, setFuncao] = useState("");
-  const [numeroFuncionario, setNumeroFuncionario] = useState("");
+  const [id, setId] = useState("");
+  const [status, setStatus] = useState("Ativo");
+  const [role, setRole] = useState("Funcionario");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -93,7 +95,9 @@ export default function AddFuncionarioModal({ visible, onClose }) {
     setDataNascimento(new Date());
     setEmail("");
     setFuncao("");
-    setNumeroFuncionario("");
+    setId("");
+    setStatus("Ativo");
+    setRole("Funcionario");
   };
 
   const formatarData = (date) => {
@@ -113,13 +117,16 @@ export default function AddFuncionarioModal({ visible, onClose }) {
     ) {
       try {
         const novoFuncionario = {
-          numeroFuncionario,
+          id: uuidv4(),
           nome: nome.trim(),
           contacto: contacto.trim(),
           dataNascimento: formatarData(dataNascimento),
           email: email.trim(),
           funcao,
+          status,
+          role,	
           createdAt: new Date(),
+
         };
 
         await addDoc(collection(LarApp_db, "funcionarios"), novoFuncionario);
@@ -138,7 +145,7 @@ export default function AddFuncionarioModal({ visible, onClose }) {
 
   useEffect(() => {
     if (visible) {
-      setNumeroFuncionario(uuidv4());
+      setId(uuidv4());
       Animated.spring(modalAnimation, {
         toValue: 1,
         useNativeDriver: true,
@@ -284,6 +291,21 @@ export default function AddFuncionarioModal({ visible, onClose }) {
               returnKeyType="done"
               onSubmitEditing={Keyboard.dismiss}
             />
+            
+            <Text style={styles.label}>Status</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={status}
+              onValueChange={(itemValue) => setStatus(itemValue)}
+              style={styles.picker} // opcional: minimal styling
+              dropdownIconColor="#555" // deixa o ícone da setinha com uma cor discreta
+            >
+              <Picker.Item label="Ativo" value="ativo" />
+              <Picker.Item label="Inativo" value="inativo" />
+            </Picker>
+          </View>
+
+
 
             <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
               <Text style={styles.saveButtonText}>Salvar</Text>
@@ -361,4 +383,26 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
+  statusPicker: {
+    height: 50,
+    width: "100%",
+    marginBottom: 15,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    marginBottom: 15,
+    backgroundColor: '#fff',
+    overflow: 'hidden', // arredonda o Picker dentro da View
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+  },
+  
 });
