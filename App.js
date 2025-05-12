@@ -88,7 +88,7 @@ function AppTabs() {
         }}
       />
       <Tab.Screen
-        name="Gestão do Lar"
+        name="Gestão"
         component={LarScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
