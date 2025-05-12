@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     height: 40, // mais compacto
     fontSize: 16,
   },
-  
+
   error: {
     color: "red",
     marginBottom: 8,

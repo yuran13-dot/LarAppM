@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../firebaseConfig";
+import { auth, LarApp_db } from "../../firebaseConfig";
+import { doc, getDoc } from 'firebase/firestore';
 import Icon from 'react-native-vector-icons/Ionicons';
 import styles from "./styles";
 import Logo from "../../components/Logo";
 import PrimaryButton from "../../components/PrimaryButton";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
@@ -54,8 +56,26 @@ export default function LoginScreen() {
     setLoading(true);
     setError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      console.log("Login bem-sucedido");
+      // Authenticate with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Fetch user data including role from Firestore
+      const userDocRef = doc(LarApp_db, 'user', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        // Store user data in AsyncStorage
+        await AsyncStorage.setItem('userData', JSON.stringify({
+          ...userData,
+          uid: user.uid
+        }));
+        console.log("Login bem-sucedido como:", userData.role);
+      } else {
+        setError("Dados do usuário não encontrados.");
+        return;
+      }
     } catch (err) {
       if (err.code === 'auth/user-not-found') {
         setError("User não encontrado. Verifique seu email.");
@@ -118,7 +138,6 @@ export default function LoginScreen() {
           ) : (
             <PrimaryButton title="Entrar" onPress={handleLogin}
             disabled={loading} style={{ with: "80%" }}
-           
             />
           )}
         </TouchableOpacity>

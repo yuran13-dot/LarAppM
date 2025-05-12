@@ -1,111 +1,306 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { useAuth } from '../../hooks/AuthContext'; 
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TextInput, 
+  TouchableOpacity, 
+  ScrollView,
+  Platform,
+  Alert,
+  ActivityIndicator
+} from 'react-native';
+import { useAuth } from '../../hooks/AuthContext';
 import { useNavigation } from '@react-navigation/native';
-import { updateProfile } from 'firebase/auth';
-import { auth } from '../../firebaseConfig';
+import { doc, updateDoc } from 'firebase/firestore';
+import { auth, LarApp_db } from '../../firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import BackButton from '../../components/BackButton';
+import Icon from 'react-native-vector-icons/Ionicons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function EditProfileScreen() {
-  const { user, userData } = useAuth(); 
+  const { user, userData, fetchUserData } = useAuth();
   const navigation = useNavigation();
-  
+  const [hasCheckedRole, setHasCheckedRole] = useState(false);
+
+  // Check role after userData is loaded
+  useEffect(() => {
+    if (userData && !hasCheckedRole) {
+      setHasCheckedRole(true);
+      console.log('User role:', userData.role);
+      
+      // Case-insensitive role check
+      if (userData.role.toLowerCase() !== 'admin') {
+        Alert.alert(
+          'Acesso Negado',
+          'Apenas administradores podem editar perfis.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      }
+    }
+  }, [userData, navigation, hasCheckedRole]);
+
   const [name, setName] = useState(userData?.name || '');
   const [phone, setPhone] = useState(userData?.phone || '');
-  const [role, setRole] = useState(userData?.role || '');
+  const [morada, setMorada] = useState(userData?.morada || '');
+  const [nascimento, setNascimento] = useState(userData?.nascimento || '');
+  const [condicoesMedicas, setCondicoesMedicas] = useState(userData?.condicoesMedicas || '');
+  const [medicacoes, setMedicacoes] = useState(userData?.medicacoes || '');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  if (!user) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.error}>Usuário não autenticado.</Text>
-      </View>
-    );
-  }
+  const handleDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const formattedDate = selectedDate.toLocaleDateString('pt-PT');
+      setNascimento(formattedDate);
+    }
+  };
 
   const handleSave = async () => {
-    try {
-      await updateProfile(auth.currentUser, {
-        displayName: name,
-        phoneNumber: phone,
-      });
+    if (!name.trim()) {
+      Alert.alert('Erro', 'O nome é obrigatório');
+      return;
+    }
 
-      await AsyncStorage.setItem('userData', JSON.stringify({ name, phone, role }));
-      navigation.goBack(); // Navega de volta para a tela de perfil
+    setLoading(true);
+    try {
+      const userDocRef = doc(LarApp_db, 'user', user.uid);
+      const updatedData = {
+        name: name.trim(),
+        phone: phone.trim(),
+        morada: morada.trim(),
+        nascimento,
+        updatedAt: new Date(),
+      };
+
+      // Add medical info only for utentes
+      if (userData?.role === 'utente') {
+        updatedData.condicoesMedicas = condicoesMedicas.trim();
+        updatedData.medicacoes = medicacoes.trim();
+      }
+
+      await updateDoc(userDocRef, updatedData);
+      
+      // Update local storage
+      const currentData = await AsyncStorage.getItem('userData');
+      const parsedData = JSON.parse(currentData);
+      const newUserData = {
+        ...parsedData,
+        ...updatedData
+      };
+      await AsyncStorage.setItem('userData', JSON.stringify(newUserData));
+
+      // Refresh the user data in the context
+      await fetchUserData(user.uid);
+
+      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
+      navigation.goBack();
     } catch (error) {
-      console.error('Erro ao atualizar o perfil:', error);
+      console.error('Erro ao atualizar perfil:', error);
+      Alert.alert('Erro', 'Ocorreu um erro ao atualizar o perfil.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <BackButton onPress={() => navigation.goBack()} />
-      <Text style={styles.title}>Editar Perfil</Text>
-      
-      <TextInput
-        style={styles.input}
-        value={name}
-        onChangeText={setName}
-        placeholder="Nome"
-      />
-      <TextInput
-        style={styles.input}
-        value={phone}
-        onChangeText={setPhone}
-        placeholder="Telefone"
-        keyboardType="phone-pad"
-      />
-      <TextInput
-        style={styles.input}
-        value={role}
-        onChangeText={setRole}
-        placeholder="Endereço"
-      />
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <Icon name="arrow-back-outline" size={24} color="#007bff" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Editar Perfil</Text>
+      </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleSave}>
-        <Text style={styles.buttonText}>Salvar</Text>
+      <View style={styles.form}>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nome Completo *</Text>
+          <View style={styles.inputContainer}>
+            <Icon name="person-outline" size={20} color="#007bff" />
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Seu nome completo"
+            />
+          </View>
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Telefone</Text>
+          <View style={styles.inputContainer}>
+            <Icon name="call-outline" size={20} color="#007bff" />
+            <TextInput
+              style={styles.input}
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="Seu número de telefone"
+              keyboardType="phone-pad"
+            />
+          </View>
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Data de Nascimento</Text>
+          <TouchableOpacity 
+            style={styles.inputContainer}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Icon name="calendar-outline" size={20} color="#007bff" />
+            <Text style={styles.dateText}>{nascimento || 'Selecionar data'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Morada</Text>
+          <View style={styles.inputContainer}>
+            <Icon name="home-outline" size={20} color="#007bff" />
+            <TextInput
+              style={styles.input}
+              value={morada}
+              onChangeText={setMorada}
+              placeholder="Sua morada"
+              multiline
+            />
+          </View>
+        </View>
+
+        {userData?.role === 'utente' && (
+          <>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Condições Médicas</Text>
+              <View style={styles.inputContainer}>
+                <Icon name="fitness-outline" size={20} color="#007bff" />
+                <TextInput
+                  style={styles.input}
+                  value={condicoesMedicas}
+                  onChangeText={setCondicoesMedicas}
+                  placeholder="Suas condições médicas"
+                  multiline
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Medicações</Text>
+              <View style={styles.inputContainer}>
+                <Icon name="medical-outline" size={20} color="#007bff" />
+                <TextInput
+                  style={styles.input}
+                  value={medicacoes}
+                  onChangeText={setMedicacoes}
+                  placeholder="Suas medicações"
+                  multiline
+                />
+              </View>
+            </View>
+          </>
+        )}
+      </View>
+
+      <TouchableOpacity 
+        style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+        onPress={handleSave}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <>
+            <Icon name="save-outline" size={20} color="#fff" />
+            <Text style={styles.saveButtonText}>Salvar Alterações</Text>
+          </>
+        )}
       </TouchableOpacity>
-    </View>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={nascimento ? new Date(nascimento) : new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleDateChange}
+          maximumDate={new Date()}
+        />
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
     backgroundColor: '#f6f6f6',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  backButton: {
+    padding: 8,
+  },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 20,
     color: '#333',
+    marginLeft: 10,
+  },
+  form: {
+    padding: 20,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 8,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   input: {
-    width: '100%',
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderRadius: 8,
-    borderColor: '#ccc',
-  },
-  button: {
-    backgroundColor: '#007bff',
+    flex: 1,
     paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    marginTop: 20,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    marginLeft: 10,
     fontSize: 16,
+    color: '#333',
   },
-  error: {
-    color: 'red',
-    fontSize: 18,
-    fontWeight: 'bold',
+  dateText: {
+    flex: 1,
+    paddingVertical: 12,
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  saveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007bff',
+    margin: 20,
+    padding: 15,
+    borderRadius: 10,
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    marginLeft: 8,
   },
 });
