@@ -6,7 +6,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import BackButton from '../../components/BackButton';
 import AddFuncionarioModal from './AddFuncionarioModal';
-
+import EditFuncionarioModal from './EditFuncionarioModal';
+import { Alert } from 'react-native';
 import { collection, onSnapshot, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import { LarApp_db } from '../../firebaseConfig';
 
@@ -21,6 +22,30 @@ export default function FuncionarioScreen() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
   // Carregar funcionários do Firestore automaticamente
+  const handleDeleteFuncionario = (funcionarioId) => {
+    Alert.alert(
+      'Confirmar exclusão',
+      'Tem certeza que deseja excluir este funcionário?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const funcionarioRef = doc(LarApp_db, 'funcionarios', funcionarioId);
+              await deleteDoc(funcionarioRef);
+              setDeleteModalVisible(false);
+            } catch (error) {
+              console.error('Erro ao excluir funcionário:', error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  
   useEffect(() => {
     const q = query(collection(LarApp_db, 'funcionarios'), orderBy('createdAt', 'desc'));
 
@@ -71,16 +96,7 @@ export default function FuncionarioScreen() {
     </View>
   );
 
-  // Função para excluir funcionário
-  const handleDeleteFuncionario = async (funcionarioId) => {
-    try {
-      const funcionarioRef = doc(LarApp_db, 'funcionarios', funcionarioId);
-      await deleteDoc(funcionarioRef);
-      setDeleteModalVisible(false);
-    } catch (error) {
-      console.error('Erro ao excluir funcionário:', error);
-    }
-  };
+ 
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
@@ -123,7 +139,11 @@ export default function FuncionarioScreen() {
         visible={isModalVisible}
         onClose={() => setModalVisible(false)}
       />
-      
+     <EditFuncionarioModal
+      visible={isEditModalVisible}
+      onClose={() => setEditModalVisible(false)}
+      funcionario={selectedFuncionario}
+    />
     </KeyboardAvoidingView>
   );
 }
