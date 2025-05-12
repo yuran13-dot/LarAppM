@@ -18,6 +18,12 @@ export default function LarScreen() {
     });
   };
 
+  const navigateToMedicacaoUtentes = () => {
+    navigation.navigate("Home", {
+      screen: "MedicacaoUtentesScreen",
+    });
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -44,6 +50,15 @@ export default function LarScreen() {
           <Icon name="medkit-outline" size={32} color="#007bff" />
           <Text style={styles.cardText}>Medicamentos</Text>
           <Text style={styles.cardNumber}>Stock</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: "#fff3e0" }]}
+          onPress={navigateToMedicacaoUtentes}
+        >
+          <Icon name="fitness-outline" size={32} color="#ff9800" />
+          <Text style={styles.cardText}>Medicação</Text>
+          <Text style={styles.cardNumber}>Utentes</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card}>

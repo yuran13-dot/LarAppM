@@ -1,18 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import BackButton from '../../components/BackButton';
-import AddUtenteModal from '../utentes/addUtente';
-import EditUtenteModal from './EditUtent';
-import DeleteUtenteModal from './DeleteUser'; 
-import { collection, onSnapshot, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
-import { LarApp_db } from '../../firebaseConfig';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from "react-native";
+import Icon from "react-native-vector-icons/Ionicons";
+import FontAwesome from "react-native-vector-icons/FontAwesome";
+import BackButton from "../../components/BackButton";
+import AddUtenteModal from "../utentes/addUtente";
+import EditUtenteModal from "./EditUtent";
+import DeleteUtenteModal from "./DeleteUser";
+import {
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+  doc,
+  deleteDoc,
+} from "firebase/firestore";
+import { LarApp_db } from "../../firebaseConfig";
 
-import styles from './styles';
+import styles from "./styles";
 
 export default function UtentesScreen({ navigation }) {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [utentes, setUtentes] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedUtente, setSelectedUtente] = useState(null);
@@ -21,10 +37,13 @@ export default function UtentesScreen({ navigation }) {
 
   // Carregar utentes do Firestore automaticamente
   useEffect(() => {
-    const q = query(collection(LarApp_db, 'utentes'), orderBy('createdAt', 'desc'));
+    const q = query(
+      collection(LarApp_db, "utentes"),
+      orderBy("createdAt", "desc")
+    );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedUtentes = snapshot.docs.map(doc => ({
+      const fetchedUtentes = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
@@ -34,22 +53,31 @@ export default function UtentesScreen({ navigation }) {
     return () => unsubscribe();
   }, []);
 
-  const filteredUtentes = utentes.filter(u =>
+  const filteredUtentes = utentes.filter((u) =>
     u.nome.toLowerCase().includes(search.toLowerCase())
   );
 
   const renderItem = ({ item }) => (
-    <View style={styles.utenteItem}>
+    <TouchableOpacity
+      style={styles.utenteItem}
+      onPress={() => navigation.navigate("PerfilUtente", { utenteId: item.id })}
+    >
       <View style={styles.utenteInfo}>
-        <FontAwesome name="user-circle" size={40} color="#007bff" style={styles.avatar} />
+        <FontAwesome
+          name="user-circle"
+          size={40}
+          color="#007bff"
+          style={styles.avatar}
+        />
         <View style={{ flex: 1 }}>
           <Text style={styles.utenteNome}>{item.nome}</Text>
-          <Text style={styles.utenteQuarto}>Quarto: {item.quarto}</Text> 
+          <Text style={styles.utenteQuarto}>Quarto: {item.quarto}</Text>
         </View>
-  
+
         <TouchableOpacity
           style={styles.iconAction}
-          onPress={() => {
+          onPress={(e) => {
+            e.stopPropagation();
             setSelectedUtente(item);
             setEditModalVisible(true);
           }}
@@ -59,32 +87,35 @@ export default function UtentesScreen({ navigation }) {
 
         <TouchableOpacity
           style={styles.iconAction}
-          onPress={() => {
+          onPress={(e) => {
+            e.stopPropagation();
             setSelectedUtente(item);
-            setDeleteModalVisible(true); // Exibir o modal de exclusão
+            setDeleteModalVisible(true);
           }}
         >
           <Icon name="trash-outline" size={20} color="#d11a2a" />
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   // Função para excluir o utente
   const handleDeleteUtente = async (utenteId) => {
     try {
-      const utenteRef = doc(LarApp_db, 'utentes', utenteId);
+      const utenteRef = doc(LarApp_db, "utentes", utenteId);
       await deleteDoc(utenteRef);
-     
+
       setDeleteModalVisible(false); // Fechar o modal de exclusão
     } catch (error) {
-      console.error('Erro ao excluir utente:', error);
-    
+      console.error("Erro ao excluir utente:", error);
     }
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.container}
+    >
       <BackButton />
 
       <View style={styles.header}>
@@ -94,7 +125,12 @@ export default function UtentesScreen({ navigation }) {
 
       <View style={styles.searchRow}>
         <View style={styles.searchContainer}>
-          <Icon name="search-outline" size={18} color="#007bff" style={{ marginLeft: 8 }} />
+          <Icon
+            name="search-outline"
+            size={18}
+            color="#007bff"
+            style={{ marginLeft: 8 }}
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Pesquisar utentes..."
@@ -104,7 +140,10 @@ export default function UtentesScreen({ navigation }) {
           />
         </View>
 
-        <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setModalVisible(true)}
+        >
           <Icon name="person-add" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -114,7 +153,7 @@ export default function UtentesScreen({ navigation }) {
       ) : (
         <FlatList
           data={filteredUtentes}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 20 }}
         />
@@ -129,7 +168,7 @@ export default function UtentesScreen({ navigation }) {
         onClose={() => setEditModalVisible(false)}
         utente={selectedUtente}
       />
-      
+
       {/* Modal de exclusão */}
       <DeleteUtenteModal
         visible={deleteModalVisible}

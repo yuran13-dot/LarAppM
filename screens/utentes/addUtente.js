@@ -13,6 +13,7 @@ import {
   StyleSheet,
   View,
   Alert,
+  FlatList,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import {
@@ -98,7 +99,7 @@ export default function AddUtenteModal({ visible, onClose }) {
     }
 
     try {
-      // 1. Adiciona o utente
+      // 1. Adiciona o utente com arrays vazios para medicamentos e atividades
       const novoUtente = {
         numeroUtente,
         nome: nome.trim(),
@@ -107,7 +108,9 @@ export default function AddUtenteModal({ visible, onClose }) {
         dataNascimento: dataNascimento.trim(),
         email: email.trim(),
         createdAt: new Date(),
-        quartoId: quartoSelecionado.id, // Adicionando referência ao quarto
+        quartoId: quartoSelecionado.id,
+        medicamentos: [], // Array vazio para medicamentos
+        atividades: [], // Array vazio para atividades
       };
 
       const docRef = await addDoc(collection(LarApp_db, "utentes"), novoUtente);

@@ -25,6 +25,10 @@ export default function AddMedModal({ visible, onClose }) {
   const [tipo, setTipo] = useState("");
   const [frequencia, setFrequencia] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [quantidade, setQuantidade] = useState("");
+  const [quantidadeMinima, setQuantidadeMinima] = useState("");
+  const [unidade, setUnidade] = useState("unidades");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const pan = useRef(new Animated.ValueXY()).current;
   const [modalHeight, setModalHeight] = useState(0);
@@ -61,31 +65,68 @@ export default function AddMedModal({ visible, onClose }) {
     setTipo("");
     setFrequencia("");
     setObservacoes("");
+    setQuantidade("");
+    setQuantidadeMinima("");
+    setUnidade("unidades");
   };
 
   const handleSave = async () => {
-    if (nome.trim() && dosagem.trim() && tipo && frequencia.trim()) {
-      try {
-        const novoMedicamento = {
-          nome: nome.trim(),
-          dosagem: dosagem.trim(),
-          tipo,
-          frequencia: frequencia.trim(),
-          observacoes: observacoes.trim(),
-          createdAt: new Date(),
-        };
+    if (isSubmitting) return;
 
-        await addDoc(collection(LarApp_db, "medicamentos"), novoMedicamento);
+    if (
+      !nome.trim() ||
+      !dosagem.trim() ||
+      !tipo ||
+      !frequencia.trim() ||
+      !quantidade.trim() ||
+      !quantidadeMinima.trim()
+    ) {
+      Alert.alert(
+        "Atenção",
+        "Preencha todos os campos obrigatórios, incluindo quantidade em stock e quantidade mínima."
+      );
+      return;
+    }
 
-        Alert.alert("Sucesso", "Medicamento adicionado com sucesso!");
-        limparCampos();
-        onClose();
-      } catch (error) {
-        console.error("Erro ao adicionar medicamento:", error);
-        Alert.alert("Erro", "Ocorreu um erro ao adicionar o medicamento.");
-      }
-    } else {
-      Alert.alert("Atenção", "Preencha todos os campos obrigatórios.");
+    const qtdNum = parseInt(quantidade);
+    const qtdMinNum = parseInt(quantidadeMinima);
+
+    if (isNaN(qtdNum) || isNaN(qtdMinNum) || qtdNum < 0 || qtdMinNum < 0) {
+      Alert.alert(
+        "Atenção",
+        "As quantidades devem ser números válidos e positivos."
+      );
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const novoMedicamento = {
+        nome: nome.trim(),
+        dosagem: dosagem.trim(),
+        tipo,
+        frequencia: frequencia.trim(),
+        observacoes: observacoes.trim(),
+        stock: {
+          quantidade: qtdNum,
+          quantidadeMinima: qtdMinNum,
+          unidade,
+          ultimaAtualizacao: new Date(),
+        },
+        createdAt: new Date(),
+      };
+
+      await addDoc(collection(LarApp_db, "medicamentos"), novoMedicamento);
+
+      Alert.alert("Sucesso", "Medicamento e stock adicionados com sucesso!");
+      limparCampos();
+      onClose();
+    } catch (error) {
+      console.error("Erro ao adicionar medicamento:", error);
+      Alert.alert("Erro", "Ocorreu um erro ao adicionar o medicamento.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -110,42 +151,43 @@ export default function AddMedModal({ visible, onClose }) {
       visible={visible}
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <Animated.View
-          {...panResponder.panHandlers}
-          style={[
-            styles.modalContainer,
-            {
-              height: modalMaxHeight,
-              opacity: modalAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 1],
-              }),
-              transform: [
-                {
-                  scaleY: modalAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 1],
-                  }),
-                },
-                { translateY: pan.y },
-              ],
-            },
-          ]}
-          onLayout={(e) => setModalHeight(e.nativeEvent.layout.height)}
-        >
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Icon name="close" size={30} color="#555" />
-          </TouchableOpacity>
-
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={{ flex: 1 }}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? -64 : 0}
+      >
+        <View style={styles.modalOverlay}>
+          <Animated.View
+            {...panResponder.panHandlers}
+            style={[
+              styles.modalContainer,
+              {
+                maxHeight: modalMaxHeight,
+                opacity: modalAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 1],
+                }),
+                transform: [
+                  {
+                    scaleY: modalAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 1],
+                    }),
+                  },
+                  { translateY: pan.y },
+                ],
+              },
+            ]}
+            onLayout={(e) => setModalHeight(e.nativeEvent.layout.height)}
           >
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <Icon name="close" size={30} color="#555" />
+            </TouchableOpacity>
+
             <ScrollView
               contentContainerStyle={styles.contentContainer}
               keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
               <Text style={styles.modalTitle}>Adicionar Medicamento</Text>
 
@@ -185,6 +227,42 @@ export default function AddMedModal({ visible, onClose }) {
                 onChangeText={setFrequencia}
               />
 
+              <View style={styles.stockContainer}>
+                <Text style={styles.stockTitle}>Informações de Stock</Text>
+
+                <View style={styles.stockRow}>
+                  <TextInput
+                    style={[styles.input, styles.stockInput]}
+                    placeholder="Quantidade em Stock"
+                    value={quantidade}
+                    onChangeText={setQuantidade}
+                    keyboardType="numeric"
+                  />
+
+                  <View style={[styles.pickerContainer, styles.unidadePicker]}>
+                    <Picker
+                      selectedValue={unidade}
+                      onValueChange={(itemValue) => setUnidade(itemValue)}
+                      style={styles.picker}
+                    >
+                      <Picker.Item label="Unidades" value="unidades" />
+                      <Picker.Item label="Caixas" value="caixas" />
+                      <Picker.Item label="Frascos" value="frascos" />
+                      <Picker.Item label="Ampolas" value="ampolas" />
+                      <Picker.Item label="Bisnagas" value="bisnagas" />
+                    </Picker>
+                  </View>
+                </View>
+
+                <TextInput
+                  style={styles.input}
+                  placeholder="Quantidade Mínima Desejada"
+                  value={quantidadeMinima}
+                  onChangeText={setQuantidadeMinima}
+                  keyboardType="numeric"
+                />
+              </View>
+
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="Observações"
@@ -194,13 +272,22 @@ export default function AddMedModal({ visible, onClose }) {
                 numberOfLines={4}
               />
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Salvar</Text>
+              <TouchableOpacity
+                style={[
+                  styles.saveButton,
+                  isSubmitting && styles.saveButtonDisabled,
+                ]}
+                onPress={handleSave}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.saveButtonText}>
+                  {isSubmitting ? "Salvando..." : "Salvar"}
+                </Text>
               </TouchableOpacity>
             </ScrollView>
-          </KeyboardAvoidingView>
-        </Animated.View>
-      </View>
+          </Animated.View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

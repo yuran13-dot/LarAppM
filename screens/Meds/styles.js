@@ -103,11 +103,11 @@ export default StyleSheet.create({
     borderTopRightRadius: 20,
     paddingTop: 40,
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 40,
   },
   contentContainer: {
     flexGrow: 1,
-    justifyContent: "center",
+    paddingBottom: 30,
   },
   closeButton: {
     position: "absolute",
@@ -149,6 +149,9 @@ export default StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     marginTop: 10,
+  },
+  saveButtonDisabled: {
+    backgroundColor: "#cccccc",
   },
   saveButtonText: {
     color: "#fff",
@@ -284,5 +287,34 @@ export default StyleSheet.create({
   },
   subtitleTablet: {
     fontSize: 16,
+  },
+
+  // Estilos para Gestão de Stock
+  stockContainer: {
+    marginBottom: 15,
+    backgroundColor: "#f8f9fa",
+    padding: 15,
+    borderRadius: 10,
+  },
+  stockTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 10,
+  },
+  stockRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  stockInput: {
+    flex: 1,
+    marginRight: 10,
+    marginBottom: 0,
+  },
+  unidadePicker: {
+    flex: 1,
+    marginBottom: 0,
   },
 });
