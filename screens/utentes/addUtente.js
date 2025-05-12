@@ -26,6 +26,8 @@ import {
   where,
 } from "firebase/firestore";
 import { LarApp_db } from "../../firebaseConfig";
+import { auth } from "../../firebaseConfig";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -37,6 +39,7 @@ export default function AddUtenteModal({ visible, onClose }) {
   const [contacto, setContacto] = useState("");
   const [dataNascimento, setDataNascimento] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [numeroUtente, setNumeroUtente] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [listaQuartos, setListaQuartos] = useState([]);
@@ -77,6 +80,7 @@ export default function AddUtenteModal({ visible, onClose }) {
     setContacto("");
     setDataNascimento("");
     setEmail("");
+    setPassword("");
     setNumeroUtente("");
     setQuartoSelecionado(null);
   };
@@ -87,9 +91,10 @@ export default function AddUtenteModal({ visible, onClose }) {
       !quarto ||
       !contacto.trim() ||
       !dataNascimento.trim() ||
-      !email.trim()
+      !email.trim() ||
+      !password.trim()
     ) {
-      Alert.alert("Atenção", "Preencha todos os campos.");
+      Alert.alert("Atenção", "Preencha todos os campos, incluindo a senha.");
       return;
     }
 
@@ -99,8 +104,16 @@ export default function AddUtenteModal({ visible, onClose }) {
     }
 
     try {
-      // 1. Adiciona o utente com arrays vazios para medicamentos e atividades
+      // 1. Criar autenticação do usuário
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      // 2. Adiciona o utente com o UID do Firebase Auth
       const novoUtente = {
+        id: userCredential.user.uid,
         numeroUtente,
         nome: nome.trim(),
         quarto: quarto,
@@ -109,14 +122,25 @@ export default function AddUtenteModal({ visible, onClose }) {
         email: email.trim(),
         createdAt: new Date(),
         quartoId: quartoSelecionado.id,
-        medicamentos: [], // Array vazio para medicamentos
-        atividades: [], // Array vazio para atividades
+        medicamentos: [],
+        atividades: [],
+        role: "utente",
       };
 
       const docRef = await addDoc(collection(LarApp_db, "utentes"), novoUtente);
       const utenteId = docRef.id;
 
-      // 2. Atualiza o quarto
+      // Adicionar à coleção de users
+      await addDoc(collection(LarApp_db, "user"), {
+        uid: userCredential.user.uid,
+        name: nome.trim(),
+        email: email.trim(),
+        role: "utente",
+        createdAt: new Date(),
+        status: "ativo",
+      });
+
+      // 3. Atualiza o quarto
       const quartoRef = doc(LarApp_db, "quartos", quartoSelecionado.id);
 
       if (quartoSelecionado.tipo === "Individual") {
@@ -138,7 +162,17 @@ export default function AddUtenteModal({ visible, onClose }) {
       onClose();
     } catch (error) {
       console.error("Erro ao adicionar utente:", error);
-      Alert.alert("Erro", "Ocorreu um erro ao adicionar o utente.");
+      let errorMessage = "Ocorreu um erro ao adicionar o utente.";
+
+      if (error.code === "auth/email-already-in-use") {
+        errorMessage = "Este e-mail já está em uso.";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "E-mail inválido.";
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = "A senha deve ter pelo menos 6 caracteres.";
+      }
+
+      Alert.alert("Erro", errorMessage);
     }
   };
 
@@ -215,119 +249,121 @@ export default function AddUtenteModal({ visible, onClose }) {
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === "ios" ? -64 : 0}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.modalOverlay}
       >
-        <View style={styles.modalOverlay}>
-          <Animated.View
-            {...panResponder.panHandlers}
-            style={[
-              styles.modalContainer,
-              {
-                maxHeight: modalMaxHeight,
-                opacity: modalAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 1],
-                }),
-                transform: [
-                  {
-                    scaleY: modalAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 1],
-                    }),
-                  },
-                  { translateY: pan.y },
-                ],
-              },
-            ]}
-            onLayout={(e) => setModalHeight(e.nativeEvent.layout.height)}
+        <Animated.View
+          {...panResponder.panHandlers}
+          style={[
+            styles.modalContainer,
+            {
+              maxHeight: modalMaxHeight,
+              transform: [
+                {
+                  translateY: modalAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [300, 0],
+                  }),
+                },
+                { translateY: pan.y },
+              ],
+            },
+          ]}
+          onLayout={(e) => setModalHeight(e.nativeEvent.layout.height)}
+        >
+          <ScrollView
+            contentContainerStyle={styles.contentContainer}
+            keyboardShouldPersistTaps="handled"
           >
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <Icon name="close" size={30} color="#555" />
             </TouchableOpacity>
 
-            <ScrollView
-              contentContainerStyle={styles.contentContainer}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <Text style={styles.title}>Adicionar Utente</Text>
+            <Text style={styles.title}>Adicionar Utente</Text>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Nome"
-                value={nome}
-                onChangeText={setNome}
-              />
+            <TextInput
+              style={styles.input}
+              placeholder="Nome"
+              value={nome}
+              onChangeText={setNome}
+            />
 
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={quarto}
-                  onValueChange={handleQuartoChange}
-                  style={styles.picker}
-                >
-                  <Picker.Item
-                    label="Selecione um Quarto"
-                    value=""
-                    color="#999"
-                  />
-                  {listaQuartos.map((q) => (
-                    <Picker.Item
-                      key={q.id}
-                      label={`Quarto ${q.numero} (${q.tipo}${
-                        q.tipo === "Casal" && q.utentesIds
-                          ? ` - ${q.utentesIds.length}/2`
-                          : ""
-                      })`}
-                      value={q.numero}
-                    />
-                  ))}
-                </Picker>
-              </View>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Contacto (telefone)"
-                value={contacto}
-                onChangeText={setContacto}
-                keyboardType="phone-pad"
-              />
-
-              <TouchableOpacity
-                style={styles.input}
-                onPress={() => setShowDatePicker(true)}
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={quarto}
+                onValueChange={handleQuartoChange}
+                style={styles.picker}
               >
-                <Text style={{ color: dataNascimento ? "#000" : "#999" }}>
-                  {dataNascimento || "Selecionar Data de Nascimento"}
-                </Text>
-              </TouchableOpacity>
-
-              {showDatePicker && (
-                <DateTimePicker
-                  value={new Date()}
-                  mode="date"
-                  display={Platform.OS === "ios" ? "spinner" : "default"}
-                  onChange={onChangeDate}
-                  maximumDate={new Date()}
+                <Picker.Item
+                  label="Selecione um Quarto"
+                  value=""
+                  color="#999"
                 />
-              )}
+                {listaQuartos.map((q) => (
+                  <Picker.Item
+                    key={q.id}
+                    label={`Quarto ${q.numero} (${q.tipo}${
+                      q.tipo === "Casal" && q.utentesIds
+                        ? ` - ${q.utentesIds.length}/2`
+                        : ""
+                    })`}
+                    value={q.numero}
+                  />
+                ))}
+              </Picker>
+            </View>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
+            <TextInput
+              style={styles.input}
+              placeholder="Contacto (telefone)"
+              value={contacto}
+              onChangeText={setContacto}
+              keyboardType="phone-pad"
+            />
+
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={{ color: dataNascimento ? "#000" : "#999" }}>
+                {dataNascimento || "Selecionar Data de Nascimento"}
+              </Text>
+            </TouchableOpacity>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={new Date()}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={onChangeDate}
+                maximumDate={new Date()}
               />
+            )}
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Salvar</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </Animated.View>
-        </View>
+            <Text style={styles.label}>E-mail</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="E-mail para acesso ao app"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <Text style={styles.label}>Senha</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Senha para acesso ao app"
+              secureTextEntry
+            />
+
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+              <Text style={styles.saveButtonText}>Salvar</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -382,4 +418,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   saveButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  label: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
 });

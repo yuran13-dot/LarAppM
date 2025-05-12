@@ -18,6 +18,8 @@ import {
 import Icon from "react-native-vector-icons/Ionicons";
 import { collection, addDoc } from "firebase/firestore";
 import { LarApp_db } from "../../firebaseConfig";
+import { auth } from "../../firebaseConfig";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -28,6 +30,7 @@ export default function AddFuncionarioModal({ visible, onClose }) {
   const [contacto, setContacto] = useState("");
   const [dataNascimento, setDataNascimento] = useState(new Date());
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [funcao, setFuncao] = useState("");
   const [id, setId] = useState("");
   const [status, setStatus] = useState("Ativo");
@@ -94,6 +97,7 @@ export default function AddFuncionarioModal({ visible, onClose }) {
     setContacto("");
     setDataNascimento(new Date());
     setEmail("");
+    setPassword("");
     setFuncao("");
     setId("");
     setStatus("Ativo");
@@ -113,33 +117,61 @@ export default function AddFuncionarioModal({ visible, onClose }) {
       contacto.trim() &&
       dataNascimento &&
       email.trim() &&
+      password.trim() &&
       funcao
     ) {
       try {
+        // Criar autenticação do usuário
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
         const novoFuncionario = {
-          id: uuidv4(),
+          id: userCredential.user.uid,
           nome: nome.trim(),
           contacto: contacto.trim(),
           dataNascimento: formatarData(dataNascimento),
           email: email.trim(),
           funcao,
           status,
-          role,	
+          role,
           createdAt: new Date(),
-
         };
 
+        // Adicionar à coleção de funcionários
         await addDoc(collection(LarApp_db, "funcionarios"), novoFuncionario);
+
+        // Adicionar à coleção de users
+        await addDoc(collection(LarApp_db, "user"), {
+          uid: userCredential.user.uid,
+          name: nome.trim(),
+          email: email.trim(),
+          role: role.toLowerCase(),
+          createdAt: new Date(),
+          status: status,
+        });
 
         Alert.alert("Sucesso", "Funcionário adicionado com sucesso!");
         limparCampos();
         onClose();
       } catch (error) {
         console.error("Erro ao adicionar funcionário:", error);
-        Alert.alert("Erro", "Ocorreu um erro ao adicionar o funcionário.");
+        let errorMessage = "Ocorreu um erro ao adicionar o funcionário.";
+
+        if (error.code === "auth/email-already-in-use") {
+          errorMessage = "Este e-mail já está em uso.";
+        } else if (error.code === "auth/invalid-email") {
+          errorMessage = "E-mail inválido.";
+        } else if (error.code === "auth/weak-password") {
+          errorMessage = "A senha deve ter pelo menos 6 caracteres.";
+        }
+
+        Alert.alert("Erro", errorMessage);
       }
     } else {
-      Alert.alert("Atenção", "Preencha todos os campos.");
+      Alert.alert("Atenção", "Preencha todos os campos, incluindo a senha.");
     }
   };
 
@@ -201,9 +233,9 @@ export default function AddFuncionarioModal({ visible, onClose }) {
               }),
               transform: [
                 {
-                  scaleY: modalAnimation.interpolate({
+                  translateY: modalAnimation.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [0, 1],
+                    outputRange: [300, 0],
                   }),
                 },
                 { translateY: pan.y },
@@ -228,89 +260,84 @@ export default function AddFuncionarioModal({ visible, onClose }) {
             <TextInput
               ref={nomeInputRef}
               style={styles.input}
-              placeholder="Nome"
               value={nome}
               onChangeText={setNome}
+              placeholder="Nome completo"
               returnKeyType="next"
               onSubmitEditing={() => focusNextInput(contactoInputRef)}
-              blurOnSubmit={false}
             />
 
-            <Text style={styles.label}>Contacto (Telefone)</Text>
+            <Text style={styles.label}>Contacto</Text>
             <TextInput
               ref={contactoInputRef}
               style={styles.input}
-              placeholder="Contacto (telefone)"
               value={contacto}
               onChangeText={setContacto}
+              placeholder="Número de telefone"
               keyboardType="phone-pad"
               returnKeyType="next"
-              onSubmitEditing={() => setShowDatePicker(true)}
+              onSubmitEditing={() => focusNextInput(emailInputRef)}
             />
 
             <Text style={styles.label}>Data de Nascimento</Text>
             <TouchableOpacity
-              style={styles.input}
+              style={styles.dateButton}
               onPress={() => setShowDatePicker(true)}
             >
-              <Text style={styles.dateText}>
+              <Text style={styles.dateButtonText}>
                 {formatarData(dataNascimento)}
               </Text>
             </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={dataNascimento}
-                mode="date"
-                display="default"
-                onChange={onChangeDate}
-                maximumDate={new Date()}
-              />
-            )}
 
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>E-mail</Text>
             <TextInput
               ref={emailInputRef}
               style={styles.input}
-              placeholder="Email"
               value={email}
               onChangeText={setEmail}
+              placeholder="E-mail"
               keyboardType="email-address"
               autoCapitalize="none"
               returnKeyType="next"
-              onSubmitEditing={() => focusNextInput(funcaoInputRef)}
-              blurOnSubmit={false}
+            />
+
+            <Text style={styles.label}>Senha</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Senha para acesso ao app"
+              secureTextEntry
+              returnKeyType="next"
             />
 
             <Text style={styles.label}>Função</Text>
-            <TextInput
-              ref={funcaoInputRef}
-              style={styles.input}
-              placeholder="Função"
-              value={funcao}
-              onChangeText={setFuncao}
-              returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss}
-            />
-            
-            <Text style={styles.label}>Status</Text>
-          <View style={styles.pickerContainer}>
             <Picker
-              selectedValue={status}
-              onValueChange={(itemValue) => setStatus(itemValue)}
-              style={styles.picker} // opcional: minimal styling
-              dropdownIconColor="#555" // deixa o ícone da setinha com uma cor discreta
+              selectedValue={funcao}
+              onValueChange={(itemValue) => setFuncao(itemValue)}
+              style={styles.picker}
             >
-              <Picker.Item label="Ativo" value="ativo" />
-              <Picker.Item label="Inativo" value="inativo" />
+              <Picker.Item label="Selecione uma função" value="" />
+              <Picker.Item label="Enfermeiro(a)" value="Enfermeiro" />
+              <Picker.Item label="Cuidador(a)" value="Cuidador" />
+              <Picker.Item label="Auxiliar" value="Auxiliar" />
+              <Picker.Item label="Administrativo" value="Administrativo" />
             </Picker>
-          </View>
-
-
 
             <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
               <Text style={styles.saveButtonText}>Salvar</Text>
             </TouchableOpacity>
           </ScrollView>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={dataNascimento}
+              mode="date"
+              display="default"
+              onChange={onChangeDate}
+              maximumDate={new Date()}
+            />
+          )}
         </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
@@ -365,7 +392,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: "#fff",
   },
-  dateText: {
+  dateButton: {
+    height: 50,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    backgroundColor: "#fff",
+  },
+  dateButtonText: {
     fontSize: 16,
     color: "#000",
     paddingVertical: 12,
@@ -383,26 +420,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
-  statusPicker: {
-    height: 50,
-    width: "100%",
-    marginBottom: 15,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 10,
-    backgroundColor: "#fff",
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    marginBottom: 15,
-    backgroundColor: '#fff',
-    overflow: 'hidden', // arredonda o Picker dentro da View
-  },
   picker: {
     height: 50,
-    width: '100%',
+    width: "100%",
   },
-  
 });

@@ -41,16 +41,22 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Fetch fresh data from Firestore
-      const userDocRef = doc(LarApp_db, "user", userId);
-      const userDoc = await getDoc(userDocRef);
+      const userQuery = query(
+        collection(LarApp_db, "user"),
+        where("uid", "==", userId)
+      );
+      const querySnapshot = await getDocs(userQuery);
 
-      if (userDoc.exists()) {
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
         const data = userDoc.data();
         setUserData(data);
         // Update cache
         await AsyncStorage.setItem(`userData_${userId}`, JSON.stringify(data));
         return data;
       } else {
+        console.error("Usuário não encontrado na coleção user");
+        setError("Usuário não encontrado");
         return null;
       }
     } catch (error) {
@@ -164,17 +170,21 @@ export const AuthProvider = ({ children }) => {
 
     const checkUser = async () => {
       try {
+        console.log("Verificando usuário...");
         const userDataFromStorage = await AsyncStorage.getItem("user");
         if (userDataFromStorage) {
+          console.log("Dados do usuário encontrados no storage");
           const storedUser = JSON.parse(userDataFromStorage);
           setUser(storedUser);
           const userData = await fetchUserData(storedUser.uid);
+          console.log("Dados do usuário buscados:", userData);
           if (userData) {
+            console.log("Inicializando dados do papel:", userData.role);
             unsubscribeRole = await initializeRoleData(userData.role);
           }
         }
       } catch (e) {
-        console.error(e);
+        console.error("Erro ao inicializar dados do usuário:", e);
         setError("Erro ao inicializar dados do usuário");
       } finally {
         setLoading(false);
@@ -184,11 +194,17 @@ export const AuthProvider = ({ children }) => {
     checkUser();
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log("Estado de autenticação alterado:", firebaseUser?.email);
       if (firebaseUser) {
         setUser(firebaseUser);
         await AsyncStorage.setItem("user", JSON.stringify(firebaseUser));
         const userData = await fetchUserData(firebaseUser.uid);
+        console.log("Dados do usuário após auth change:", userData);
         if (userData) {
+          console.log(
+            "Inicializando dados do papel após auth change:",
+            userData.role
+          );
           unsubscribeRole = await initializeRoleData(userData.role);
         }
       } else {
