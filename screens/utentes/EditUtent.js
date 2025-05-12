@@ -1,56 +1,53 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Modal, Text, TextInput, TouchableOpacity, PanResponder, Animated, Platform, KeyboardAvoidingView, ScrollView, Dimensions, StyleSheet, View, Alert } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import { doc, updateDoc } from 'firebase/firestore';
-import { LarApp_db } from '../../firebaseConfig';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Modal,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  PanResponder,
+  Animated,
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView,
+  Dimensions,
+  StyleSheet,
+  View,
+  Alert,
+} from "react-native";
+import Icon from "react-native-vector-icons/Ionicons";
+import {
+  doc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { LarApp_db } from "../../firebaseConfig";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function EditUtenteModal({ visible, onClose, utente }) {
-  const [nome, setNome] = useState('');
-  const [quarto, setQuarto] = useState('');
-  const [contacto, setContacto] = useState('');
-  const [dataNascimento, setDataNascimento] = useState('');
-  const [email, setEmail] = useState('');
-
+  const [nome, setNome] = useState("");
+  const [quarto, setQuarto] = useState("");
+  const [contacto, setContacto] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
+  const [email, setEmail] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const pan = useRef(new Animated.ValueXY()).current;
   const [modalHeight, setModalHeight] = useState(0);
   const modalAnimation = useRef(new Animated.Value(0)).current;
 
-  const screenHeight = Dimensions.get('window').height;
+  const screenHeight = Dimensions.get("window").height;
   const modalMaxHeight = screenHeight * 0.9;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: (e, gestureState) => {
-        if (gestureState.dy > 0) {
-          pan.setValue({ x: 0, y: gestureState.dy });
-        }
-      },
-      onPanResponderRelease: (e, gestureState) => {
-        if (gestureState.dy > modalHeight / 4) {
-          onClose();
-        } else {
-          Animated.spring(pan, {
-            toValue: { x: 0, y: 0 },
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
-
-  // Preenche os campos quando o modal abre
   useEffect(() => {
     if (visible && utente) {
-      setNome(utente.nome || '');
-      setQuarto(utente.quarto || '');
-      setContacto(utente.contacto || '');
-      setDataNascimento(utente.dataNascimento || '');
-      setEmail(utente.email || '');
+      setNome(utente.nome || "");
+      setQuarto(utente.quarto || "");
+      setContacto(utente.contacto || "");
+      setDataNascimento(utente.dataNascimento || "");
+      setEmail(utente.email || "");
 
       Animated.spring(modalAnimation, {
         toValue: 1,
@@ -67,34 +64,72 @@ export default function EditUtenteModal({ visible, onClose, utente }) {
   const onChangeDate = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
-      const day = selectedDate.getDate().toString().padStart(2, '0');
-      const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+      const day = selectedDate.getDate().toString().padStart(2, "0");
+      const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
       const year = selectedDate.getFullYear();
       setDataNascimento(`${day}/${month}/${year}`);
     }
   };
 
   const handleUpdate = async () => {
-    if (nome.trim() && quarto.trim() && contacto.trim() && dataNascimento.trim() && email.trim()) {
+    if (!utente) {
+      Alert.alert("Erro", "Dados do utente não encontrados.");
+      return;
+    }
+
+    if (
+      nome.trim() &&
+      quarto.trim() &&
+      contacto.trim() &&
+      dataNascimento.trim() &&
+      email.trim()
+    ) {
       try {
-        const utenteRef = doc(LarApp_db, 'utentes', utente.id);
+        // Atualizar na coleção user
+        const userQuery = query(
+          collection(LarApp_db, "user"),
+          where("uid", "==", utente.id)
+        );
+        const userSnapshot = await getDocs(userQuery);
 
-        await updateDoc(utenteRef, {
-          nome: nome.trim(),
-          quarto: quarto.trim(),
-          contacto: contacto.trim(),
-          dataNascimento: dataNascimento.trim(),
-          email: email.trim(),
-        });
+        if (!userSnapshot.empty) {
+          const userDoc = userSnapshot.docs[0];
+          await updateDoc(doc(LarApp_db, "user", userDoc.id), {
+            name: nome.trim(),
+            email: email.trim(),
+            updatedAt: new Date(),
+          });
+        }
 
-        Alert.alert('Sucesso', 'Utente atualizado com sucesso!');
-        onClose();
+        // Atualizar na coleção utentes
+        const utenteQuery = query(
+          collection(LarApp_db, "utentes"),
+          where("id", "==", utente.id)
+        );
+        const utenteSnapshot = await getDocs(utenteQuery);
+
+        if (!utenteSnapshot.empty) {
+          const utenteDoc = utenteSnapshot.docs[0];
+          await updateDoc(doc(LarApp_db, "utentes", utenteDoc.id), {
+            nome: nome.trim(),
+            quarto: quarto.trim(),
+            contacto: contacto.trim(),
+            dataNascimento: dataNascimento.trim(),
+            email: email.trim(),
+            updatedAt: new Date(),
+          });
+
+          Alert.alert("Sucesso", "Utente atualizado com sucesso!");
+          onClose();
+        } else {
+          throw new Error("Utente não encontrado");
+        }
       } catch (error) {
-        console.error('Erro ao atualizar utente:', error);
-        Alert.alert('Erro', 'Ocorreu um erro ao atualizar o utente.');
+        console.error("Erro ao atualizar utente:", error);
+        Alert.alert("Erro", "Ocorreu um erro ao atualizar o utente.");
       }
     } else {
-      Alert.alert('Atenção', 'Preencha todos os campos.');
+      Alert.alert("Atenção", "Preencha todos os campos.");
     }
   };
 
@@ -107,39 +142,36 @@ export default function EditUtenteModal({ visible, onClose, utente }) {
     >
       <View style={styles.modalOverlay}>
         <Animated.View
-          {...panResponder.panHandlers}
           style={[
             styles.modalContainer,
             {
               height: modalMaxHeight,
-              opacity: modalAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 1],
-              }),
+              opacity: modalAnimation,
               transform: [
                 {
-                  scaleY: modalAnimation.interpolate({
+                  translateY: modalAnimation.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [0, 1],
+                    outputRange: [300, 0],
                   }),
                 },
-                { translateY: pan.y },
               ],
             },
           ]}
-          onLayout={(e) => {
-            const { height } = e.nativeEvent.layout;
-            setModalHeight(height);
-          }}
         >
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Icon name="close" size={30} color="#555" />
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onClose}
+            activeOpacity={0.7}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+          >
+            <View style={styles.closeButtonContainer}>
+              <Icon name="close" size={30} color="#555" />
+            </View>
           </TouchableOpacity>
 
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={{ flex: 1 }}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
           >
             <ScrollView
               contentContainerStyle={styles.contentContainer}
@@ -147,12 +179,15 @@ export default function EditUtenteModal({ visible, onClose, utente }) {
             >
               <Text style={styles.title}>Editar Utente</Text>
 
+              <Text style={styles.label}>Nome</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Nome"
                 value={nome}
                 onChangeText={setNome}
               />
+
+              <Text style={styles.label}>Número do Quarto</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Número do Quarto"
@@ -160,6 +195,8 @@ export default function EditUtenteModal({ visible, onClose, utente }) {
                 onChangeText={setQuarto}
                 keyboardType="numeric"
               />
+
+              <Text style={styles.label}>Contacto</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Contacto (telefone)"
@@ -168,21 +205,29 @@ export default function EditUtenteModal({ visible, onClose, utente }) {
                 keyboardType="phone-pad"
               />
 
-              <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
-                <Text style={{ color: dataNascimento ? '#000' : '#999' }}>
-                  {dataNascimento ? dataNascimento : 'Selecionar Data de Nascimento'}
+              <Text style={styles.label}>Data de Nascimento</Text>
+              <TouchableOpacity
+                style={styles.input}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={{ color: dataNascimento ? "#000" : "#999" }}>
+                  {dataNascimento
+                    ? dataNascimento
+                    : "Selecionar Data de Nascimento"}
                 </Text>
               </TouchableOpacity>
+
               {showDatePicker && (
                 <DateTimePicker
                   value={new Date()}
                   mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
                   onChange={onChangeDate}
                   maximumDate={new Date()}
                 />
               )}
 
+              <Text style={styles.label}>Email</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Email"
@@ -192,7 +237,10 @@ export default function EditUtenteModal({ visible, onClose, utente }) {
                 autoCapitalize="none"
               />
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleUpdate}>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleUpdate}
+              >
                 <Text style={styles.saveButtonText}>Atualizar</Text>
               </TouchableOpacity>
             </ScrollView>
@@ -206,11 +254,11 @@ export default function EditUtenteModal({ visible, onClose, utente }) {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 40,
@@ -219,38 +267,54 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
+    paddingBottom: 30,
   },
   closeButton: {
-    position: 'absolute',
-    top: 10,
+    position: "absolute",
+    top: Platform.OS === "ios" ? 10 : 5,
     right: 10,
+    zIndex: 2,
+    padding: 10,
+  },
+  closeButtonContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 5,
+    color: "#333",
   },
   input: {
     height: 50,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderWidth: 1,
     borderRadius: 10,
     marginBottom: 15,
     paddingLeft: 15,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   saveButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: "#007bff",
     padding: 15,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 10,
   },
   saveButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });

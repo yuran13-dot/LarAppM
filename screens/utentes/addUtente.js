@@ -308,8 +308,15 @@ export default function AddUtenteModal({ visible, onClose }) {
             contentContainerStyle={styles.contentContainer}
             keyboardShouldPersistTaps="handled"
           >
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Icon name="close" size={30} color="#555" />
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={onClose}
+              activeOpacity={0.7}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+            >
+              <View style={styles.closeButtonContainer}>
+                <Icon name="close" size={30} color="#555" />
+              </View>
             </TouchableOpacity>
 
             <Text style={styles.title}>Adicionar Utente</Text>
@@ -432,7 +439,21 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 30,
   },
-  closeButton: { position: "absolute", top: 10, right: 10 },
+  closeButton: {
+    position: "absolute",
+    top: Platform.OS === "ios" ? 10 : 5,
+    right: 10,
+    zIndex: 2,
+    padding: 10,
+  },
+  closeButtonContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",

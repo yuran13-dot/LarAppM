@@ -1,8 +1,14 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../hooks/AuthContext";
-import Icon from 'react-native-vector-icons/Ionicons';
+import Icon from "react-native-vector-icons/Ionicons";
 
 export default function UtenteHome() {
   const { user, userData } = useAuth();
@@ -11,7 +17,9 @@ export default function UtenteHome() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.welcomeText}>Bem-vindo(a), {userData?.name || 'Utente'}</Text>
+        <Text style={styles.welcomeText}>
+          Bem-vindo(a), {userData?.name || "Utente"}
+        </Text>
         <Text style={styles.subtitle}>Tenha um ótimo dia!</Text>
       </View>
 
@@ -36,19 +44,28 @@ export default function UtenteHome() {
 
       <View style={styles.menuGrid}>
         {/* Profile Section */}
-        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Profile')}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate("Profile")}
+        >
           <Icon name="person-outline" size={32} color="#007bff" />
           <Text style={styles.menuText}>Meu Perfil</Text>
         </TouchableOpacity>
 
         {/* Schedule Section */}
-        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Agenda')}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate("Agenda")}
+        >
           <Icon name="calendar-outline" size={32} color="#007bff" />
           <Text style={styles.menuText}>Agenda</Text>
         </TouchableOpacity>
 
         {/* Chat Section */}
-        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Chat')}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate("Chat")}
+        >
           <Icon name="chatbubbles-outline" size={32} color="#007bff" />
           <Text style={styles.menuText}>Mensagens</Text>
         </TouchableOpacity>
@@ -76,7 +93,9 @@ export default function UtenteHome() {
         <Text style={styles.sectionTitle}>Avisos Importantes</Text>
         <View style={styles.infoCard}>
           <Icon name="information-circle-outline" size={24} color="#007bff" />
-          <Text style={styles.infoText}>Lembre-se de confirmar sua presença nas atividades do dia</Text>
+          <Text style={styles.infoText}>
+            Lembre-se de confirmar sua presença nas atividades do dia
+          </Text>
         </View>
       </View>
 
@@ -224,4 +243,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginLeft: 10,
   },
-}); 
+});
