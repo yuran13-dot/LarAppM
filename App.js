@@ -18,6 +18,8 @@ import RoomsScreen from "./screens/rooms/RoomsScreen";
 import HomeStack from "./navigation/HomeStack"; // Stack de Home
 import EditUtenteScreen from "./screens/profile/EditProfile";
 import LarScreen from "./screens/lar/LarScreen";
+import MedsScreen from "./screens/Meds/MedsScreen";
+import MedicacaoUtentesScreen from "./screens/Meds/MedicacaoUtentesScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -59,6 +61,29 @@ function AuthStack() {
   );
 }
 
+// Stack para a Gestão do Lar
+function GestaoStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="GestaoHome"
+        component={LarScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MedsScreen"
+        component={MedsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MedicacaoUtentesScreen"
+        component={MedicacaoUtentesScreen}
+        options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
+}
+
 // Tab para quem está logado
 function AppTabs() {
   return (
@@ -89,7 +114,7 @@ function AppTabs() {
       />
       <Tab.Screen
         name="Gestão"
-        component={LarScreen}
+        component={GestaoStack}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="business-outline" size={size} color={color} />

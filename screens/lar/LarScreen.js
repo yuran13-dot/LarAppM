@@ -13,15 +13,11 @@ export default function LarScreen() {
   const navigation = useNavigation();
 
   const navigateToMeds = () => {
-    navigation.navigate("Home", {
-      screen: "MedsScreen",
-    });
+    navigation.navigate("MedsScreen");
   };
 
   const navigateToMedicacaoUtentes = () => {
-    navigation.navigate("Home", {
-      screen: "MedicacaoUtentesScreen",
-    });
+    navigation.navigate("MedicacaoUtentesScreen");
   };
 
   return (
