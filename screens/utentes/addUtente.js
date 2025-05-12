@@ -111,6 +111,18 @@ export default function AddUtenteModal({ visible, onClose }) {
         password
       );
 
+      const userData = {
+        uid: userCredential.user.uid,
+        name: nome.trim(),
+        email: email.trim(),
+        role: "utente",
+        createdAt: new Date(),
+        status: "ativo",
+      };
+
+      // Adicionar à coleção de users primeiro
+      const userDocRef = await addDoc(collection(LarApp_db, "user"), userData);
+
       // 2. Adiciona o utente com o UID do Firebase Auth
       const novoUtente = {
         id: userCredential.user.uid,
@@ -130,15 +142,33 @@ export default function AddUtenteModal({ visible, onClose }) {
       const docRef = await addDoc(collection(LarApp_db, "utentes"), novoUtente);
       const utenteId = docRef.id;
 
-      // Adicionar à coleção de users
-      await addDoc(collection(LarApp_db, "user"), {
-        uid: userCredential.user.uid,
-        name: nome.trim(),
-        email: email.trim(),
-        role: "utente",
-        createdAt: new Date(),
-        status: "ativo",
-      });
+      // Verificar se os dados foram salvos corretamente
+      const verificarDados = async () => {
+        const userQuery = query(
+          collection(LarApp_db, "user"),
+          where("uid", "==", userCredential.user.uid)
+        );
+        const querySnapshot = await getDocs(userQuery);
+
+        if (querySnapshot.empty) {
+          throw new Error("Dados do usuário não foram salvos corretamente");
+        }
+      };
+
+      // Tentar verificar os dados algumas vezes antes de prosseguir
+      for (let i = 0; i < 3; i++) {
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 1000)); // Espera 1 segundo
+          await verificarDados();
+          break;
+        } catch (error) {
+          if (i === 2) {
+            // Se for a última tentativa
+            throw error;
+          }
+          // Continua tentando se não for a última tentativa
+        }
+      }
 
       // 3. Atualiza o quarto
       const quartoRef = doc(LarApp_db, "quartos", quartoSelecionado.id);

@@ -16,7 +16,7 @@ import {
   Keyboard,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { LarApp_db } from "../../firebaseConfig";
 import { auth } from "../../firebaseConfig";
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -128,6 +128,21 @@ export default function AddFuncionarioModal({ visible, onClose }) {
           password
         );
 
+        const userData = {
+          uid: userCredential.user.uid,
+          name: nome.trim(),
+          email: email.trim(),
+          role: role.toLowerCase(),
+          createdAt: new Date(),
+          status: status,
+        };
+
+        // Adicionar à coleção de users primeiro
+        const userDocRef = await addDoc(
+          collection(LarApp_db, "user"),
+          userData
+        );
+
         const novoFuncionario = {
           id: userCredential.user.uid,
           nome: nome.trim(),
@@ -143,15 +158,33 @@ export default function AddFuncionarioModal({ visible, onClose }) {
         // Adicionar à coleção de funcionários
         await addDoc(collection(LarApp_db, "funcionarios"), novoFuncionario);
 
-        // Adicionar à coleção de users
-        await addDoc(collection(LarApp_db, "user"), {
-          uid: userCredential.user.uid,
-          name: nome.trim(),
-          email: email.trim(),
-          role: role.toLowerCase(),
-          createdAt: new Date(),
-          status: status,
-        });
+        // Verificar se os dados foram salvos corretamente
+        const verificarDados = async () => {
+          const userQuery = query(
+            collection(LarApp_db, "user"),
+            where("uid", "==", userCredential.user.uid)
+          );
+          const querySnapshot = await getDocs(userQuery);
+
+          if (querySnapshot.empty) {
+            throw new Error("Dados do usuário não foram salvos corretamente");
+          }
+        };
+
+        // Tentar verificar os dados algumas vezes antes de prosseguir
+        for (let i = 0; i < 3; i++) {
+          try {
+            await new Promise((resolve) => setTimeout(resolve, 1000)); // Espera 1 segundo
+            await verificarDados();
+            break;
+          } catch (error) {
+            if (i === 2) {
+              // Se for a última tentativa
+              throw error;
+            }
+            // Continua tentando se não for a última tentativa
+          }
+        }
 
         Alert.alert("Sucesso", "Funcionário adicionado com sucesso!");
         limparCampos();
