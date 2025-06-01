@@ -51,7 +51,8 @@ export default function UtentesScreen({ navigation }) {
         return {
           id: doc.id,
           ...data,
-          nome: data.name || data.nome, // Garantir que o nome seja mapeado corretamente
+          // Usar apenas o campo name para o nome
+          name: data.name || '',
           quarto: data.quarto || '',
           status: data.status || 'ativo'
         };
@@ -66,10 +67,18 @@ export default function UtentesScreen({ navigation }) {
     return () => unsubscribe();
   }, []);
 
+  // Sempre usar dados atualizados
+  const refreshUtentes = () => {
+    // Esta função é apenas para documentar que estamos usando os dados mais recentes
+    // A atualização já acontece automaticamente através do onSnapshot
+    console.log("Garantindo dados atualizados de utentes");
+  };
+  
   const filteredUtentes = utentes.filter((u) => {
     const searchTerm = search.toLowerCase();
-    const nome = (u.nome || u.name || '').toLowerCase();
-    return nome.includes(searchTerm);
+    // Usar apenas o campo name
+    const name = (u.name || '').toLowerCase();
+    return name.includes(searchTerm);
   });
 
   const renderItem = ({ item }) => {
@@ -87,7 +96,7 @@ export default function UtentesScreen({ navigation }) {
             style={styles.avatar}
           />
           <View style={{ flex: 1 }}>
-            <Text style={styles.utenteNome}>{item.nome || item.name || 'Nome não definido'}</Text>
+            <Text style={styles.utenteNome}>{item.name || 'Nome não definido'}</Text>
             <Text style={styles.utenteQuarto}>Quarto: {item.quarto || 'Não definido'}</Text>
             <Text style={styles.utenteStatus}>
               Status:{" "}
@@ -186,7 +195,12 @@ export default function UtentesScreen({ navigation }) {
 
       <EditUtenteModal
         visible={isEditModalVisible}
-        onClose={() => setEditModalVisible(false)}
+        onClose={() => {
+          // Quando fechamos o modal, garantimos dados atualizados
+          setEditModalVisible(false);
+          // Já não precisamos chamar refreshUtentes() explicitamente
+          // porque o onSnapshot já fará isso automaticamente
+        }}
         utente={selectedUtente}
       />
 

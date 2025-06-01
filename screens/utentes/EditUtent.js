@@ -43,7 +43,7 @@ export default function EditUtenteModal({ visible, onClose, utente }) {
 
   useEffect(() => {
     if (visible && utente) {
-      setNome(utente.nome || "");
+      setNome(utente.name || "");
       setQuarto(utente.quarto || "");
       setContacto(utente.contacto || "");
       setDataNascimento(utente.dataNascimento || "");
@@ -110,15 +110,20 @@ export default function EditUtenteModal({ visible, onClose, utente }) {
 
         if (!utenteSnapshot.empty) {
           const utenteDoc = utenteSnapshot.docs[0];
-          await updateDoc(doc(LarApp_db, "utentes", utenteDoc.id), {
-            nome: nome.trim(),
+          const updateData = {
+            name: nome.trim(), // Usar somente o campo name
             quarto: quarto.trim(),
             contacto: contacto.trim(),
             dataNascimento: dataNascimento.trim(),
             email: email.trim(),
             updatedAt: new Date(),
-          });
-
+          };
+          
+          await updateDoc(doc(LarApp_db, "utentes", utenteDoc.id), updateData);
+          
+          // Forçar atualização da coleção para refletir na listagem
+          console.log("Utente atualizado com sucesso:", updateData);
+          
           Alert.alert("Sucesso", "Utente atualizado com sucesso!");
           onClose();
         } else {

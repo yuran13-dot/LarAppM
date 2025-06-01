@@ -80,11 +80,38 @@ export const useUtentes = () => {
     setLoading(true);
     setError(null);
     try {
-      const utenteRef = doc(LarApp_db, "user", utenteId);
-      await updateDoc(utenteRef, {
-        ...utenteData,
-        updatedAt: new Date(),
-      });
+      // Atualizar na coleção user
+      const userQuery = query(
+        collection(LarApp_db, "user"),
+        where("uid", "==", utenteId)
+      );
+      const userSnapshot = await getDocs(userQuery);
+
+      if (!userSnapshot.empty) {
+        const userDoc = userSnapshot.docs[0];
+        await updateDoc(doc(LarApp_db, "user", userDoc.id), {
+          ...utenteData,
+          name: utenteData.name, // Usar apenas o campo name
+          updatedAt: new Date(),
+        });
+      }
+      
+      // Atualizar também na coleção utentes
+      const utenteQuery = query(
+        collection(LarApp_db, "utentes"),
+        where("id", "==", utenteId)
+      );
+      const utenteSnapshot = await getDocs(utenteQuery);
+
+      if (!utenteSnapshot.empty) {
+        const utenteDoc = utenteSnapshot.docs[0];
+        await updateDoc(doc(LarApp_db, "utentes", utenteDoc.id), {
+          ...utenteData,
+          name: utenteData.name, // Usar apenas o campo name
+          updatedAt: new Date(),
+        });
+      }
+      
       return true;
     } catch (err) {
       setError("Erro ao atualizar utente: " + err.message);
