@@ -495,6 +495,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingTop: 5, // Added padding to ensure content starts below status bar
   },
   header: {
     flexDirection: 'row',
@@ -502,12 +503,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingTop: 20, // Increased top padding to move header down
+    paddingBottom: 15, // Slightly increased bottom padding
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+    marginTop: 10, // Added margin at the top to create more space
   },
   backButton: {
-    padding: 5,
+    padding: 10, // Increased from 5 to 10 to provide a larger touchable area
   },
   headerTitle: {
     fontSize: 18,
@@ -519,11 +522,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   editButton: {
-    padding: 5,
+    padding: 10, // Increased from 5 to 10
     marginRight: 10,
   },
   deleteButton: {
-    padding: 5,
+    padding: 10, // Increased from 5 to 10
   },
   loadingContainer: {
     flex: 1,

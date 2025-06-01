@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
+  Image,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../hooks/AuthContext";
@@ -24,101 +25,70 @@ export default function FuncionarioHome() {
         <Text style={styles.subtitle}>Painel de Controle</Text>
       </View>
 
-      <ScrollView style={styles.container}>
-        {/* Quick Actions */}
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        
         <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Icon name="add-circle-outline" size={24} color="#fff" />
-            <Text style={styles.actionText}>Nova Tarefa</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Icon name="notifications-outline" size={24} color="#fff" />
-            <Text style={styles.actionText}>Notificações</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Today's Tasks */}
-        <View style={styles.todaySection}>
-          <Text style={styles.sectionTitle}>Tarefas de Hoje</Text>
-          <View style={styles.taskCard}>
-            <Icon name="checkmark-circle-outline" size={24} color="#28a745" />
-            <View style={styles.taskInfo}>
-              <Text style={styles.taskTitle}>Medicação - Quarto 101</Text>
-              <Text style={styles.taskTime}>08:00 - Concluído</Text>
-            </View>
-          </View>
-          <View style={styles.taskCard}>
-            <Icon name="time-outline" size={24} color="#ffc107" />
-            <View style={styles.taskInfo}>
-              <Text style={styles.taskTitle}>Acompanhamento - Quarto 203</Text>
-              <Text style={styles.taskTime}>11:00 - Pendente</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.menuGrid}>
-          {/* Profile Section */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate("Profile")}
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => navigation.navigate("UtentesScreen")}
           >
-            <Icon name="person-outline" size={32} color="#007bff" />
-            <Text style={styles.menuText}>Meu Perfil</Text>
+            <Icon name="people" size={20} color="#fff" />
+            <Text style={styles.actionText}>Ver Utentes</Text>
           </TouchableOpacity>
 
-          {/* Utentes Management */}
+          <TouchableOpacity 
+            style={[styles.actionButton, {backgroundColor: '#28a745'}]}
+            onPress={() => navigation.navigate("TarefasRealizadas")}
+          >
+            <Icon name="checkmark-circle" size={20} color="#fff" />
+            <Text style={styles.actionText}>Tarefas</Text>
+          </TouchableOpacity>
+        </View>
+
+
+        
+        <Text style={[styles.sectionTitle, {marginHorizontal: 20}]}>Acesso Rápido</Text>
+        <View style={styles.menuGrid}>
+          
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => navigation.navigate("RoomsScreen")}
+            onPress={() => navigation.navigate("UtentesScreen")}
           >
             <Icon name="people-outline" size={32} color="#007bff" />
             <Text style={styles.menuText}>Utentes</Text>
           </TouchableOpacity>
 
-          {/* Schedule Management */}
+          
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => navigation.navigate("Agenda")}
+            onPress={() => navigation.navigate("TarefasRealizadas")}
           >
-            <Icon name="calendar-outline" size={32} color="#007bff" />
-            <Text style={styles.menuText}>Agenda</Text>
-          </TouchableOpacity>
-
-          {/* Tasks Section */}
-          <TouchableOpacity style={styles.menuItem}>
             <Icon name="list-outline" size={32} color="#007bff" />
             <Text style={styles.menuText}>Tarefas</Text>
           </TouchableOpacity>
 
-          {/* Chat Section */}
+         
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => navigation.navigate("Chat")}
+            onPress={() => navigation.navigate("RelatorioScreen")}
           >
-            <Icon name="chatbubbles-outline" size={32} color="#007bff" />
-            <Text style={styles.menuText}>Mensagens</Text>
-          </TouchableOpacity>
-
-          {/* Reports Section */}
-          <TouchableOpacity style={styles.menuItem}>
             <Icon name="document-text-outline" size={32} color="#007bff" />
             <Text style={styles.menuText}>Relatórios</Text>
           </TouchableOpacity>
+          
+         
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("MedsScreen")}
+          >
+            <Icon name="medkit-outline" size={32} color="#007bff" />
+            <Text style={styles.menuText}>Medicação</Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>Lembretes</Text>
-          <View style={styles.infoCard}>
-            <Icon name="alert-circle-outline" size={24} color="#007bff" />
-            <Text style={styles.infoText}>Reunião de equipe às 15:00</Text>
-          </View>
-        </View>
+      
 
-        {/* Emergency Protocol */}
-        <TouchableOpacity style={styles.emergencyButton}>
-          <Icon name="alert-circle-outline" size={24} color="#fff" />
-          <Text style={styles.emergencyText}>Protocolo de Emergência</Text>
-        </TouchableOpacity>
+        
       </ScrollView>
     </SafeAreaView>
   );
@@ -154,7 +124,7 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
     padding: 15,
     backgroundColor: "#fff",
     marginHorizontal: 15,
@@ -165,17 +135,17 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 3,
   },
   actionButton: {
     backgroundColor: "#007bff",
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
-    borderRadius: 8,
-    width: "45%",
+    padding: 12,
+    borderRadius: 10,
+    width: "48%",
     justifyContent: "center",
   },
   actionText: {
@@ -202,11 +172,19 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 1,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.1,
+    shadowRadius: 2.84,
+    elevation: 2,
+  },
+  taskIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f0f7ff",
+    justifyContent: "center",
+    alignItems: "center",
   },
   taskInfo: {
     marginLeft: 15,
@@ -222,11 +200,21 @@ const styles = StyleSheet.create({
     color: "#666",
     marginTop: 2,
   },
+  viewAllButton: {
+    alignItems: "center",
+    marginTop: 10,
+    paddingVertical: 10,
+  },
+  viewAllText: {
+    color: "#007bff",
+    fontWeight: "600",
+  },
   menuGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     padding: 15,
     justifyContent: "space-between",
+    marginHorizontal: 5,
   },
   menuItem: {
     width: "48%",
@@ -234,19 +222,22 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 15,
     alignItems: "center",
+    justifyContent: "center",
     marginVertical: 8,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 2,
+    height: 110,
   },
   menuText: {
     marginTop: 10,
     fontSize: 16,
+    fontWeight: "500",
     color: "#333",
     textAlign: "center",
   },
@@ -255,7 +246,7 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     backgroundColor: "#fff",
-    padding: 15,
+    padding: 20,
     borderRadius: 15,
     flexDirection: "row",
     alignItems: "center",
@@ -264,15 +255,16 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 2,
   },
   infoText: {
     marginLeft: 10,
-    fontSize: 14,
-    color: "#666",
+    fontSize: 15,
+    color: "#444",
     flex: 1,
+    lineHeight: 22,
   },
   emergencyButton: {
     backgroundColor: "#dc3545",
