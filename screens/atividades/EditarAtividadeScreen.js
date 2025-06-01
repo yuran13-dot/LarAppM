@@ -167,6 +167,7 @@ export default function EditarAtividadeScreen({ visible, onClose, atividade, onA
                     textColor="#000000"
                     themeVariant="light"
                     locale="pt-PT"
+                    minuteInterval={1}
                   />
                 </View>
               )}

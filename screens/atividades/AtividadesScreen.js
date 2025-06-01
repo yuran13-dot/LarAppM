@@ -40,7 +40,7 @@ export default function AtividadesScreen({ navigation }) {
       
       setAtividades(atividadesData);
     } catch (error) {
-      console.error('Erro ao buscar atividades:', error);
+      // Silently handle error
     } finally {
       setLoading(false);
       setRefreshing(false);

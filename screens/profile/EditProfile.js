@@ -29,9 +29,9 @@ export default function EditProfileScreen() {
   const [loading, setLoading] = useState(true);
 
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [contacto, setContacto] = useState('');
   const [morada, setMorada] = useState('');
-  const [nascimento, setNascimento] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
   const [condicoesMedicas, setCondicoesMedicas] = useState('');
   const [medicacoes, setMedicacoes] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -42,15 +42,15 @@ export default function EditProfileScreen() {
       if (!user) return;
 
       try {
-        const userDocRef = doc(LarApp_db, 'user', user.uid);
+        const userDocRef = doc(LarApp_db, 'users', user.uid);
         const docSnap = await getDoc(userDocRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
           setName(data.name || '');
-          setPhone(data.phone || '');
+          setContacto(data.contacto || '');
           setMorada(data.morada || '');
-          setNascimento(data.nascimento || '');
+          setDataNascimento(data.dataNascimento || '');
           setCondicoesMedicas(data.condicoesMedicas || '');
           setMedicacoes(data.medicacoes || '');
 
@@ -84,13 +84,13 @@ export default function EditProfileScreen() {
     setShowDatePicker(false);
     if (selectedDate) {
       const formattedDate = selectedDate.toLocaleDateString('pt-PT');
-      setNascimento(formattedDate);
+      setDataNascimento(formattedDate);
     }
   };
 
   const getInitialDate = () => {
-    if (nascimento) {
-      const [day, month, year] = nascimento.split('/');
+    if (dataNascimento) {
+      const [day, month, year] = dataNascimento.split('/');
       return new Date(year, month - 1, day);
     }
     return new Date();
@@ -109,20 +109,16 @@ export default function EditProfileScreen() {
 
     setLoading(true);
     try {
-      const userDocRef = doc(LarApp_db, 'user', user.uid);
+      const userDocRef = doc(LarApp_db, 'users', user.uid);
       const updatedData = {
         name: name.trim(),
-        phone: phone.trim(),
+        contacto: contacto.trim(),
         morada: morada.trim(),
-        nascimento,
-        updatedAt: new Date(),
+        dataNascimento: dataNascimento,
+        condicoesMedicas: condicoesMedicas.trim(),
+        medicacoes: medicacoes.trim(),
+        updatedAt: new Date().toISOString()
       };
-
-      // Add medical info only for utentes
-      if (userData?.role === 'utente') {
-        updatedData.condicoesMedicas = condicoesMedicas.trim();
-        updatedData.medicacoes = medicacoes.trim();
-      }
 
       // Check if document exists
       const docSnap = await getDoc(userDocRef);
@@ -219,10 +215,9 @@ export default function EditProfileScreen() {
                 <Icon name="call-outline" size={24} color="#007bff" />
                 <TextInput
                   style={styles.input}
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="Seu número de telefone"
-                  placeholderTextColor="#999"
+                  value={contacto}
+                  onChangeText={setContacto}
+                  placeholder="Seu telefone"
                   keyboardType="phone-pad"
                 />
               </View>
@@ -235,8 +230,8 @@ export default function EditProfileScreen() {
                 onPress={() => setShowDatePicker(true)}
               >
                 <Icon name="calendar-outline" size={24} color="#007bff" />
-                <Text style={[styles.input, !nascimento && styles.placeholderText]}>
-                  {nascimento || 'Selecionar data'}
+                <Text style={[styles.input, !dataNascimento && styles.placeholderText]}>
+                  {dataNascimento || 'Selecione uma data'}
                 </Text>
               </TouchableOpacity>
             </View>

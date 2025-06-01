@@ -37,81 +37,99 @@ export default function UtentesScreen({ navigation }) {
 
   // Carregar utentes do Firestore automaticamente
   useEffect(() => {
+    console.log("Iniciando busca de utentes...");
     const q = query(
       collection(LarApp_db, "utentes"),
       orderBy("createdAt", "desc")
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedUtentes = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      console.log("Snapshot recebido:", snapshot.size, "documentos");
+      const fetchedUtentes = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        console.log("Dados do utente:", data);
+        return {
+          id: doc.id,
+          ...data,
+          nome: data.name || data.nome, // Garantir que o nome seja mapeado corretamente
+          quarto: data.quarto || '',
+          status: data.status || 'ativo'
+        };
+      });
+      console.log("Utentes processados:", fetchedUtentes);
       setUtentes(fetchedUtentes);
+    }, (error) => {
+      console.error("Erro ao buscar utentes:", error);
+      Alert.alert("Erro", "Não foi possível carregar a lista de utentes.");
     });
 
     return () => unsubscribe();
   }, []);
 
-  const filteredUtentes = utentes.filter((u) =>
-    u.nome.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredUtentes = utentes.filter((u) => {
+    const searchTerm = search.toLowerCase();
+    const nome = (u.nome || u.name || '').toLowerCase();
+    return nome.includes(searchTerm);
+  });
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.utenteItem}
-      onPress={() => navigation.navigate('PerfilUtente', { utenteId: item.id })}
-    >
-      <View style={styles.utenteInfo}>
-        <FontAwesome
-          name="user-circle"
-          size={40}
-          color="#007bff"
-          style={styles.avatar}
-        />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.utenteNome}>{item.nome}</Text>
-          <Text style={styles.utenteQuarto}>Quarto: {item.quarto}</Text>
-          <Text style={styles.utenteStatus}>
-            Status:{" "}
-            <Text
-              style={
-                item.status === "ativo"
-                  ? styles.statusAtivo
-                  : styles.statusInativo
-              }
-            >
-              {item.status === "ativo" ? "Ativo" : "Inativo"}
+  const renderItem = ({ item }) => {
+    console.log("Renderizando item:", item);
+    return (
+      <TouchableOpacity 
+        style={styles.utenteItem}
+        onPress={() => navigation.navigate('PerfilUtente', { utenteId: item.id })}
+      >
+        <View style={styles.utenteInfo}>
+          <FontAwesome
+            name="user-circle"
+            size={40}
+            color="#007bff"
+            style={styles.avatar}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.utenteNome}>{item.nome || item.name || 'Nome não definido'}</Text>
+            <Text style={styles.utenteQuarto}>Quarto: {item.quarto || 'Não definido'}</Text>
+            <Text style={styles.utenteStatus}>
+              Status:{" "}
+              <Text
+                style={
+                  item.status === "ativo"
+                    ? styles.statusAtivo
+                    : styles.statusInativo
+                }
+              >
+                {item.status === "ativo" ? "Ativo" : "Inativo"}
+              </Text>
             </Text>
-          </Text>
-        </View>
+          </View>
 
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.iconAction}
-            onPress={(e) => {
-              e.stopPropagation();
-              setSelectedUtente(item);
-              setEditModalVisible(true);
-            }}
-          >
-            <Icon name="pencil-outline" size={20} color="#555" />
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.iconAction}
+              onPress={(e) => {
+                e.stopPropagation();
+                setSelectedUtente(item);
+                setEditModalVisible(true);
+              }}
+            >
+              <Icon name="pencil-outline" size={20} color="#555" />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.iconAction}
-            onPress={(e) => {
-              e.stopPropagation();
-              setSelectedUtente(item);
-              setGerenciarModalVisible(true);
-            }}
-          >
-            <Icon name="settings-outline" size={20} color="#555" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconAction}
+              onPress={(e) => {
+                e.stopPropagation();
+                setSelectedUtente(item);
+                setGerenciarModalVisible(true);
+              }}
+            >
+              <Icon name="settings-outline" size={20} color="#555" />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <KeyboardAvoidingView

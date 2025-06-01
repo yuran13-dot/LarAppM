@@ -104,6 +104,8 @@ function GestaoStack() {
 
 // Tab para quem está logado
 function AppTabs() {
+  const { userData } = useAuth();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -130,15 +132,17 @@ function AppTabs() {
           ),
         }}
       />
-      <Tab.Screen
-        name="Gestão"
-        component={GestaoStack}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="business-outline" size={size} color={color} />
-          ),
-        }}
-      />
+      {userData?.role !== 'utente' && (
+        <Tab.Screen
+          name="Gestão"
+          component={GestaoStack}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="business-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
       <Tab.Screen
         name="Chat"
         component={ChatScreen}

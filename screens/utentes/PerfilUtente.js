@@ -14,6 +14,7 @@ import {
   StatusBar,
   TouchableWithoutFeedback,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from "firebase/firestore";
@@ -38,36 +39,31 @@ export default function PerfilUtente({ route, navigation }) {
   const [diastolicBP, setDiastolicBP] = useState("");
   const [temperature, setTemperature] = useState("");
   const [heartRate, setHeartRate] = useState("");
-  const [vitalSignsHistory, setVitalSignsHistory] = useState([]);
 
-  useEffect(() => {
-    carregarDadosUtente();
-  }, []);
-
-  const carregarDadosUtente = async () => {
+  const fetchUtenteData = async () => {
     try {
-      setLoading(true);
-      // Buscar na coleção utentes usando o ID
-      const utenteQuery = query(
-        collection(LarApp_db, "utentes"),
-        where("id", "==", utenteId)
-      );
-      const utenteSnapshot = await getDocs(utenteQuery);
+      const utentesRef = collection(LarApp_db, 'utentes');
+      const q = query(utentesRef, where('id', '==', utenteId));
+      const querySnapshot = await getDocs(q);
 
-      if (!utenteSnapshot.empty) {
-        const utenteDoc = utenteSnapshot.docs[0];
+      if (!querySnapshot.empty) {
+        const utenteDoc = querySnapshot.docs[0];
         setUtente({ id: utenteDoc.id, ...utenteDoc.data() });
       } else {
-        Alert.alert("Erro", "Utente não encontrado");
+        Alert.alert('Erro', 'Utente não encontrado');
         navigation.goBack();
       }
     } catch (error) {
-      console.error("Erro ao carregar dados do utente:", error);
-      Alert.alert("Erro", "Não foi possível carregar os dados do utente");
+      console.error('Erro ao carregar dados do utente:', error);
+      Alert.alert('Erro', 'Não foi possível carregar os dados do utente');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchUtenteData();
+  }, [utenteId]);
 
   const abrirModalMedicamento = (medicamento) => {
     setMedicamentoSelecionado(medicamento);
@@ -185,7 +181,7 @@ export default function PerfilUtente({ route, navigation }) {
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    carregarDadosUtente().then(() => {
+    fetchUtenteData().then(() => {
       setRefreshing(false);
     });
   }, []);
@@ -198,12 +194,11 @@ export default function PerfilUtente({ route, navigation }) {
       }
 
       const newVitalSigns = {
-        timestamp: Timestamp.now(),
-        systolicBP: parseInt(systolicBP),
-        diastolicBP: parseInt(diastolicBP),
-        temperature: parseFloat(temperature),
-        heartRate: parseInt(heartRate),
-        recordedBy: userData?.name || "Funcionário"
+        data: Timestamp.now(),
+        pressao: `${systolicBP}/${diastolicBP}`,
+        temperatura: parseFloat(temperature),
+        frequenciaCardiaca: parseInt(heartRate),
+        registradoPor: userData?.name || "Funcionário"
       };
 
       const utenteQuery = query(
@@ -220,15 +215,15 @@ export default function PerfilUtente({ route, navigation }) {
       const utenteDoc = utenteSnapshot.docs[0];
       const utenteRef = doc(LarApp_db, "utentes", utenteDoc.id);
 
-      const updatedVitalSignsHistory = [...(utente.vitalSignsHistory || []), newVitalSigns];
+      const updatedDadosVitais = [...(utente.dadosVitais || []), newVitalSigns];
 
       await updateDoc(utenteRef, {
-        vitalSignsHistory: updatedVitalSignsHistory
+        dadosVitais: updatedDadosVitais
       });
 
       setUtente(prev => ({
         ...prev,
-        vitalSignsHistory: updatedVitalSignsHistory
+        dadosVitais: updatedDadosVitais
       }));
 
       setVitalSignsModalVisible(false);
@@ -246,8 +241,9 @@ export default function PerfilUtente({ route, navigation }) {
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container}>
-          <Text style={styles.loadingText}>Carregando...</Text>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007bff" />
+          <Text style={styles.loadingText}>Carregando dados...</Text>
         </View>
       </SafeAreaView>
     );
@@ -272,6 +268,11 @@ export default function PerfilUtente({ route, navigation }) {
   const atividadesPendentes =
     utente.atividades?.filter((atv) => atv.status === "pendente") || [];
 
+  // Ordenar dados vitais por data, do mais recente para o mais antigo
+  const dadosVitaisOrdenados = [...(utente.dadosVitais || [])].sort((a, b) => {
+    return new Date(b.data) - new Date(a.data);
+  });
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -281,7 +282,7 @@ export default function PerfilUtente({ route, navigation }) {
         >
           <Icon name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{utente?.nome || "Perfil do Utente"}</Text>
+        <Text style={styles.headerTitle}>{utente?.nome || utente?.name || "Perfil do Utente"}</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -336,7 +337,7 @@ export default function PerfilUtente({ route, navigation }) {
             </TouchableOpacity>
           </View>
 
-          {utente.vitalSignsHistory && utente.vitalSignsHistory.length > 0 ? (
+          {utente.dadosVitais && utente.dadosVitais.length > 0 ? (
             <View style={styles.vitalSignsContainer}>
               <View style={styles.mainVitalSignsCard}>
                 <View style={styles.vitalSignsHeader}>
@@ -354,8 +355,7 @@ export default function PerfilUtente({ route, navigation }) {
                     <Icon name="pulse" size={24} color="#1976d2" style={styles.vitalSignIcon} />
                     <Text style={styles.vitalSignLabel}>Pressão Arterial</Text>
                     <Text style={styles.vitalSignValue}>
-                      {utente.vitalSignsHistory[utente.vitalSignsHistory.length - 1].systolicBP}/
-                      {utente.vitalSignsHistory[utente.vitalSignsHistory.length - 1].diastolicBP}
+                      {utente.dadosVitais[utente.dadosVitais.length - 1].pressao}
                     </Text>
                     <Text style={styles.vitalSignUnit}>mmHg</Text>
                   </View>
@@ -364,7 +364,7 @@ export default function PerfilUtente({ route, navigation }) {
                     <Icon name="thermometer" size={24} color="#f57f17" style={styles.vitalSignIcon} />
                     <Text style={styles.vitalSignLabel}>Temperatura</Text>
                     <Text style={styles.vitalSignValue}>
-                      {utente.vitalSignsHistory[utente.vitalSignsHistory.length - 1].temperature}
+                      {utente.dadosVitais[utente.dadosVitais.length - 1].temperatura}
                     </Text>
                     <Text style={styles.vitalSignUnit}>°C</Text>
                   </View>
@@ -373,13 +373,13 @@ export default function PerfilUtente({ route, navigation }) {
                     <Icon name="heart" size={24} color="#2e7d32" style={styles.vitalSignIcon} />
                     <Text style={styles.vitalSignLabel}>Freq. Cardíaca</Text>
                     <Text style={styles.vitalSignValue}>
-                      {utente.vitalSignsHistory[utente.vitalSignsHistory.length - 1].heartRate}
+                      {utente.dadosVitais[utente.dadosVitais.length - 1].frequenciaCardiaca}
                     </Text>
                     <Text style={styles.vitalSignUnit}>bpm</Text>
                   </View>
                 </View>
                 <Text style={styles.vitalSignsTimestamp}>
-                  Última atualização: {new Date(utente.vitalSignsHistory[utente.vitalSignsHistory.length - 1].timestamp.toDate()).toLocaleString()}
+                  Última atualização: {new Date(utente.dadosVitais[utente.dadosVitais.length - 1].data.toDate()).toLocaleString()}
                 </Text>
               </View>
             </View>
@@ -815,22 +815,22 @@ export default function PerfilUtente({ route, navigation }) {
             </View>
 
             <ScrollView style={styles.historyList}>
-              {utente.vitalSignsHistory && utente.vitalSignsHistory.length > 0 ? (
-                utente.vitalSignsHistory.slice().reverse().map((record, index) => (
+              {utente.dadosVitais && utente.dadosVitais.length > 0 ? (
+                utente.dadosVitais.slice().reverse().map((record, index) => (
                   <View key={index} style={styles.historyItem}>
                     <View style={styles.historyHeader}>
                       <Text style={styles.historyDate}>
-                        {new Date(record.timestamp.toDate()).toLocaleString()}
+                        {new Date(record.data.toDate()).toLocaleString()}
                       </Text>
                       <Text style={styles.historyRecordedBy}>
-                        Registrado por: {record.recordedBy}
+                        Registrado por: {record.registradoPor}
                       </Text>
                     </View>
                     <View style={styles.historyGrid}>
                       <View style={[styles.historyValueCard, { backgroundColor: '#e3f2fd' }]}>
                         <Text style={styles.historyLabel}>Pressão Arterial</Text>
                         <Text style={styles.historyValue}>
-                          {record.systolicBP}/{record.diastolicBP}
+                          {record.pressao}
                         </Text>
                         <Text style={styles.historyUnit}>mmHg</Text>
                       </View>
@@ -838,7 +838,7 @@ export default function PerfilUtente({ route, navigation }) {
                       <View style={[styles.historyValueCard, { backgroundColor: '#fff9c4' }]}>
                         <Text style={styles.historyLabel}>Temperatura</Text>
                         <Text style={styles.historyValue}>
-                          {record.temperature}
+                          {record.temperatura}
                         </Text>
                         <Text style={styles.historyUnit}>°C</Text>
                       </View>
@@ -846,7 +846,7 @@ export default function PerfilUtente({ route, navigation }) {
                       <View style={[styles.historyValueCard, { backgroundColor: '#e8f5e9' }]}>
                         <Text style={styles.historyLabel}>Freq. Cardíaca</Text>
                         <Text style={styles.historyValue}>
-                          {record.heartRate}
+                          {record.frequenciaCardiaca}
                         </Text>
                         <Text style={styles.historyUnit}>bpm</Text>
                       </View>
@@ -870,8 +870,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
-  container: {
+  loadingContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
   },
   header: {
     flexDirection: "row",
@@ -1064,12 +1071,6 @@ const styles = StyleSheet.create({
     color: "#666",
     marginTop: 10,
     textAlign: "center",
-  },
-  loadingText: {
-    textAlign: "center",
-    fontSize: 18,
-    color: "#666",
-    marginTop: 50,
   },
   modalOverlay: {
     flex: 1,

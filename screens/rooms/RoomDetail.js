@@ -21,12 +21,27 @@ export default function QuartoDetalhesModal({ visible, onClose, quarto }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteDoc(doc(LarApp_db, 'quartos', id));
+              if (isOcupado) {
+                Alert.alert('Erro', 'Não é possível deletar um quarto ocupado.');
+                return;
+              }
+
+              if (!id) {
+                console.error('ID do quarto não encontrado:', quarto);
+                Alert.alert('Erro', 'ID do quarto não encontrado.');
+                return;
+              }
+
+              console.log('Tentando deletar quarto com ID:', id);
+              const quartoRef = doc(LarApp_db, 'quartos', id);
+              await deleteDoc(quartoRef);
+              
+              console.log('Quarto deletado com sucesso');
               Alert.alert('Sucesso', 'Quarto apagado com sucesso!');
               onClose();
             } catch (error) {
               console.error('Erro ao apagar quarto:', error);
-              Alert.alert('Erro', 'Ocorreu um erro ao apagar o quarto.');
+              Alert.alert('Erro', `Ocorreu um erro ao apagar o quarto: ${error.message}`);
             }
           },
         },
@@ -38,7 +53,6 @@ export default function QuartoDetalhesModal({ visible, onClose, quarto }) {
     <Modal visible={visible} animationType="fade" transparent>
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
-
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Icon name="close-circle" size={30} color="#ff4d4d" />
           </TouchableOpacity>
@@ -65,15 +79,20 @@ export default function QuartoDetalhesModal({ visible, onClose, quarto }) {
             <Text style={styles.value}>{tipo}</Text>
           </View>
 
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+          <TouchableOpacity 
+            style={[styles.deleteButton, isOcupado && styles.deleteButtonDisabled]} 
+            onPress={handleDelete}
+            disabled={isOcupado}
+          >
             <Icon name="trash-bin" size={20} color="#fff" style={{ marginRight: 6 }} />
-            <Text style={styles.deleteButtonText}>Apagar Quarto</Text>
+            <Text style={styles.deleteButtonText}>
+              {isOcupado ? 'Quarto Ocupado' : 'Apagar Quarto'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.closeModalButton} onPress={onClose}>
             <Text style={styles.closeModalText}>Fechar</Text>
           </TouchableOpacity>
-
         </View>
       </View>
     </Modal>
@@ -81,16 +100,79 @@ export default function QuartoDetalhesModal({ visible, onClose, quarto }) {
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', borderRadius: 20, padding: 25, width: '85%', elevation: 5 },
-  closeButton: { position: 'absolute', top: 10, right: 10 },
-  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, color: '#333' },
-  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-  icon: { marginRight: 10 },
-  label: { fontSize: 16, color: '#666', width: 70 },
-  value: { fontSize: 17, fontWeight: 'bold', color: '#333' },
-  deleteButton: { flexDirection: 'row', backgroundColor: '#dc3545', paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
-  deleteButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  closeModalButton: { marginTop: 15, backgroundColor: '#007bff', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-  closeModalText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  closeButton: {
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    zIndex: 1,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+  icon: {
+    marginRight: 10,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginRight: 10,
+  },
+  value: {
+    fontSize: 16,
+    color: '#666',
+    flex: 1,
+  },
+  deleteButton: {
+    backgroundColor: '#dc3545',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 20,
+  },
+  deleteButtonDisabled: {
+    backgroundColor: '#6c757d',
+    opacity: 0.7,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  closeModalButton: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#f8f9fa',
+    alignItems: 'center',
+  },
+  closeModalText: {
+    color: '#6c757d',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

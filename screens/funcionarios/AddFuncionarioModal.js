@@ -139,7 +139,7 @@ export default function AddFuncionarioModal({ visible, onClose }) {
 
         // Adicionar à coleção de users primeiro
         const userDocRef = await addDoc(
-          collection(LarApp_db, "user"),
+            collection(LarApp_db, "users"),
           userData
         );
 
@@ -161,7 +161,7 @@ export default function AddFuncionarioModal({ visible, onClose }) {
         // Verificar se os dados foram salvos corretamente
         const verificarDados = async () => {
           const userQuery = query(
-            collection(LarApp_db, "user"),
+            collection(LarApp_db, "users"),
             where("uid", "==", userCredential.user.uid)
           );
           const querySnapshot = await getDocs(userQuery);

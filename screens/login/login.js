@@ -79,7 +79,7 @@ export default function LoginScreen() {
 
       // Fetch user data including role from Firestore
       const userQuery = query(
-        collection(LarApp_db, "user"),
+        collection(LarApp_db, "users"),
         where("uid", "==", user.uid)
       );
       const userSnapshot = await getDocs(userQuery);
@@ -97,6 +97,30 @@ export default function LoginScreen() {
         setError("Sua conta está inativa. Por favor, contate o administrador.");
         await auth.signOut();
         return;
+      }
+
+      // Se for um utente, buscar dados adicionais da coleção utentes
+      if (userData.role === "utente") {
+        const utenteQuery = query(
+          collection(LarApp_db, "utentes"),
+          where("id", "==", user.uid)
+        );
+        const utenteSnapshot = await getDocs(utenteQuery);
+
+        if (!utenteSnapshot.empty) {
+          const utenteData = utenteSnapshot.docs[0].data();
+          console.log("Dados do utente encontrados:", utenteData); // Log para debug
+          // Combinar os dados do usuário com os dados do utente
+          userData.contacto = utenteData.contacto;
+          userData.morada = utenteData.morada;
+          userData.dataNascimento = utenteData.dataNascimento;
+          userData.quarto = utenteData.quarto;
+          userData.medicamentos = utenteData.medicamentos || [];
+          userData.atividades = utenteData.atividades || [];
+          userData.dadosVitais = utenteData.dadosVitais || [];
+        } else {
+          console.warn("Nenhum documento encontrado para o utente com id:", user.uid);
+        }
       }
 
       // Store user data in AsyncStorage

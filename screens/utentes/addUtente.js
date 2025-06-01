@@ -37,14 +37,18 @@ export default function AddUtenteModal({ visible, onClose }) {
   const [nome, setNome] = useState("");
   const [quarto, setQuarto] = useState("");
   const [contacto, setContacto] = useState("");
+  const [morada, setMorada] = useState("");
   const [dataNascimento, setDataNascimento] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [numeroUtente, setNumeroUtente] = useState("");
   const [status, setStatus] = useState("ativo");
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
   const [listaQuartos, setListaQuartos] = useState([]);
   const [quartoSelecionado, setQuartoSelecionado] = useState(null);
+  const [showQuartoPicker, setShowQuartoPicker] = useState(false);
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const pan = useRef(new Animated.ValueXY()).current;
   const [modalHeight, setModalHeight] = useState(0);
@@ -55,8 +59,16 @@ export default function AddUtenteModal({ visible, onClose }) {
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: (evt, gestureState) => {
+        // Só responde se o toque começar na área do indicador
+        const { locationY } = evt.nativeEvent;
+        return locationY <= 24; // altura do dragHandle
+      },
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Só responde se o movimento for para baixo e começar na área do indicador
+        const { locationY } = evt.nativeEvent;
+        return gestureState.dy > 0 && locationY <= 24;
+      },
       onPanResponderMove: (e, gestureState) => {
         if (gestureState.dy > 0) {
           pan.setValue({ x: 0, y: gestureState.dy });
@@ -69,6 +81,8 @@ export default function AddUtenteModal({ visible, onClose }) {
           Animated.spring(pan, {
             toValue: { x: 0, y: 0 },
             useNativeDriver: true,
+            friction: 8,
+            tension: 40,
           }).start();
         }
       },
@@ -82,7 +96,6 @@ export default function AddUtenteModal({ visible, onClose }) {
     setDataNascimento("");
     setEmail("");
     setPassword("");
-    setNumeroUtente("");
     setStatus("ativo");
     setQuartoSelecionado(null);
   };
@@ -123,21 +136,22 @@ export default function AddUtenteModal({ visible, onClose }) {
       };
 
       // Adicionar à coleção de users primeiro
-      const userDocRef = await addDoc(collection(LarApp_db, "user"), userData);
+      const userDocRef = await addDoc(collection(LarApp_db, "users"), userData);
 
       // 2. Adiciona o utente com o UID do Firebase Auth
       const novoUtente = {
         id: userCredential.user.uid,
-        numeroUtente,
-        nome: nome.trim(),
+        name: nome.trim(),
         quarto: quarto,
         contacto: contacto.trim(),
         dataNascimento: dataNascimento.trim(),
+        morada: morada.trim(),
         email: email.trim(),
         createdAt: new Date(),
         quartoId: quartoSelecionado.id,
         medicamentos: [],
         atividades: [],
+        dadosVitais: [],
         role: "utente",
         status: status,
       };
@@ -148,7 +162,7 @@ export default function AddUtenteModal({ visible, onClose }) {
       // Verificar se os dados foram salvos corretamente
       const verificarDados = async () => {
         const userQuery = query(
-          collection(LarApp_db, "user"),
+          collection(LarApp_db, "users"),
           where("uid", "==", userCredential.user.uid)
         );
         const querySnapshot = await getDocs(userQuery);
@@ -250,7 +264,7 @@ export default function AddUtenteModal({ visible, onClose }) {
 
   useEffect(() => {
     if (visible) {
-      setNumeroUtente(uuidv4());
+
       carregarQuartosLivres();
       Animated.spring(modalAnimation, {
         toValue: 1,
@@ -265,13 +279,258 @@ export default function AddUtenteModal({ visible, onClose }) {
   }, [visible]);
 
   const onChangeDate = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      const day = selectedDate.getDate().toString().padStart(2, "0");
-      const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
-      const year = selectedDate.getFullYear();
-      setDataNascimento(`${day}/${month}/${year}`);
+    if (Platform.OS === 'ios') {
+      setTempDate(selectedDate || tempDate);
+    } else {
+      setShowDatePicker(false);
+      if (selectedDate) {
+        const day = selectedDate.getDate().toString().padStart(2, "0");
+        const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
+        const year = selectedDate.getFullYear();
+        setDataNascimento(`${day}/${month}/${year}`);
+      }
     }
+  };
+
+  const confirmDate = () => {
+    const day = tempDate.getDate().toString().padStart(2, "0");
+    const month = (tempDate.getMonth() + 1).toString().padStart(2, "0");
+    const year = tempDate.getFullYear();
+    setDataNascimento(`${day}/${month}/${year}`);
+    setShowDatePicker(false);
+  };
+
+  const renderDatePicker = () => {
+    if (Platform.OS === 'ios') {
+      return (
+        <>
+          <TouchableOpacity
+            style={styles.dateInput}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={[styles.dateInputText, !dataNascimento && styles.dateInputPlaceholder]}>
+              {dataNascimento || "Selecionar Data de Nascimento"}
+            </Text>
+            <Icon name="calendar-outline" size={20} color="#666" />
+          </TouchableOpacity>
+
+          <Modal
+            visible={showDatePicker}
+            transparent={true}
+            animationType="slide"
+          >
+            <View style={styles.iosPickerContainer}>
+              <View style={styles.iosPickerHeader}>
+                <TouchableOpacity
+                  onPress={() => setShowDatePicker(false)}
+                  style={styles.iosPickerButton}
+                >
+                  <Text style={styles.iosPickerButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={confirmDate}
+                  style={styles.iosPickerButton}
+                >
+                  <Text style={[styles.iosPickerButtonText, styles.iosPickerButtonTextConfirm]}>
+                    Confirmar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={tempDate}
+                mode="date"
+                display="spinner"
+                onChange={onChangeDate}
+                maximumDate={new Date()}
+                style={styles.iosDatePicker}
+              />
+            </View>
+          </Modal>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <TouchableOpacity
+          style={styles.dateInput}
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Text style={[styles.dateInputText, !dataNascimento && styles.dateInputPlaceholder]}>
+            {dataNascimento || "Selecionar Data de Nascimento"}
+          </Text>
+          <Icon name="calendar-outline" size={20} color="#666" />
+        </TouchableOpacity>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={new Date()}
+            mode="date"
+            display="default"
+            onChange={onChangeDate}
+            maximumDate={new Date()}
+          />
+        )}
+      </>
+    );
+  };
+
+  const renderQuartoPicker = () => {
+    if (Platform.OS === 'ios') {
+      return (
+        <>
+          <TouchableOpacity
+            style={styles.pickerTrigger}
+            onPress={() => setShowQuartoPicker(true)}
+          >
+            <Text style={[styles.pickerTriggerText, !quarto && styles.pickerTriggerPlaceholder]}>
+              {quarto ? `Quarto ${quarto}` : "Selecione um Quarto"}
+            </Text>
+            <Icon name="chevron-down" size={20} color="#666" />
+          </TouchableOpacity>
+
+          <Modal
+            visible={showQuartoPicker}
+            transparent={true}
+            animationType="slide"
+          >
+            <View style={styles.iosPickerContainer}>
+              <View style={styles.iosPickerHeader}>
+                <TouchableOpacity
+                  onPress={() => setShowQuartoPicker(false)}
+                  style={styles.iosPickerButton}
+                >
+                  <Text style={styles.iosPickerButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowQuartoPicker(false)}
+                  style={styles.iosPickerButton}
+                >
+                  <Text style={[styles.iosPickerButtonText, styles.iosPickerButtonTextConfirm]}>
+                    Confirmar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Picker
+                selectedValue={quarto}
+                onValueChange={(value) => {
+                  handleQuartoChange(value);
+                }}
+                style={styles.iosPicker}
+              >
+                <Picker.Item
+                  label="Selecione um Quarto"
+                  value=""
+                  color="#999"
+                />
+                {listaQuartos.map((q) => (
+                  <Picker.Item
+                    key={q.id}
+                    label={`Quarto ${q.numero} (${q.tipo}${
+                      q.tipo === "Casal" && q.utentesIds
+                        ? ` - ${q.utentesIds.length}/2`
+                        : ""
+                    })`}
+                    value={q.numero}
+                  />
+                ))}
+              </Picker>
+            </View>
+          </Modal>
+        </>
+      );
+    }
+
+    return (
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={quarto}
+          onValueChange={handleQuartoChange}
+          style={styles.picker}
+        >
+          <Picker.Item
+            label="Selecione um Quarto"
+            value=""
+            color="#999"
+          />
+          {listaQuartos.map((q) => (
+            <Picker.Item
+              key={q.id}
+              label={`Quarto ${q.numero} (${q.tipo}${
+                q.tipo === "Casal" && q.utentesIds
+                  ? ` - ${q.utentesIds.length}/2`
+                  : ""
+              })`}
+              value={q.numero}
+            />
+          ))}
+        </Picker>
+      </View>
+    );
+  };
+
+  const renderStatusPicker = () => {
+    if (Platform.OS === 'ios') {
+      return (
+        <>
+          <TouchableOpacity
+            style={styles.pickerTrigger}
+            onPress={() => setShowStatusPicker(true)}
+          >
+            <Text style={styles.pickerTriggerText}>
+              {status === "ativo" ? "Ativo" : "Inativo"}
+            </Text>
+            <Icon name="chevron-down" size={20} color="#666" />
+          </TouchableOpacity>
+
+          <Modal
+            visible={showStatusPicker}
+            transparent={true}
+            animationType="slide"
+          >
+            <View style={styles.iosPickerContainer}>
+              <View style={styles.iosPickerHeader}>
+                <TouchableOpacity
+                  onPress={() => setShowStatusPicker(false)}
+                  style={styles.iosPickerButton}
+                >
+                  <Text style={styles.iosPickerButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowStatusPicker(false)}
+                  style={styles.iosPickerButton}
+                >
+                  <Text style={[styles.iosPickerButtonText, styles.iosPickerButtonTextConfirm]}>
+                    Confirmar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Picker
+                selectedValue={status}
+                onValueChange={(value) => setStatus(value)}
+                style={styles.iosPicker}
+              >
+                <Picker.Item label="Ativo" value="ativo" />
+                <Picker.Item label="Inativo" value="inativo" />
+              </Picker>
+            </View>
+          </Modal>
+        </>
+      );
+    }
+
+    return (
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={status}
+          onValueChange={(itemValue) => setStatus(itemValue)}
+          style={styles.picker}
+        >
+          <Picker.Item label="Ativo" value="ativo" />
+          <Picker.Item label="Inativo" value="inativo" />
+        </Picker>
+      </View>
+    );
   };
 
   return (
@@ -308,6 +567,10 @@ export default function AddUtenteModal({ visible, onClose }) {
             contentContainerStyle={styles.contentContainer}
             keyboardShouldPersistTaps="handled"
           >
+            <View style={styles.dragHandle} {...panResponder.panHandlers}>
+              <View style={styles.dragIndicator} />
+            </View>
+
             <TouchableOpacity
               style={styles.closeButton}
               onPress={onClose}
@@ -321,94 +584,75 @@ export default function AddUtenteModal({ visible, onClose }) {
 
             <Text style={styles.title}>Adicionar Utente</Text>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Nome"
-              value={nome}
-              onChangeText={setNome}
-            />
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Informações Pessoais</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Nome completo"
+                value={nome}
+                onChangeText={setNome}
+                placeholderTextColor="#999"
+              />
 
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={quarto}
-                onValueChange={handleQuartoChange}
-                style={styles.picker}
-              >
-                <Picker.Item
-                  label="Selecione um Quarto"
-                  value=""
-                  color="#999"
-                />
-                {listaQuartos.map((q) => (
-                  <Picker.Item
-                    key={q.id}
-                    label={`Quarto ${q.numero} (${q.tipo}${
-                      q.tipo === "Casal" && q.utentesIds
-                        ? ` - ${q.utentesIds.length}/2`
-                        : ""
-                    })`}
-                    value={q.numero}
-                  />
-                ))}
-              </Picker>
+              <TextInput
+                style={styles.input}
+                placeholder="Contacto (telefone)"
+                value={contacto}
+                onChangeText={setContacto}
+                keyboardType="phone-pad"
+                placeholderTextColor="#999"
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Morada"
+                value={morada}
+                onChangeText={setMorada}
+                placeholderTextColor="#999"
+              />
+
+              {renderDatePicker()}
             </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Contacto (telefone)"
-              value={contacto}
-              onChangeText={setContacto}
-              keyboardType="phone-pad"
-            />
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Acomodação</Text>
+              {renderQuartoPicker()}
+            </View>
 
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={{ color: dataNascimento ? "#000" : "#999" }}>
-                {dataNascimento || "Selecionar Data de Nascimento"}
-              </Text>
-            </TouchableOpacity>
-
-            {showDatePicker && (
-              <DateTimePicker
-                value={new Date()}
-                mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={onChangeDate}
-                maximumDate={new Date()}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Acesso ao Sistema</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="E-mail para acesso ao app"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor="#999"
               />
-            )}
 
-            <Text style={styles.label}>E-mail</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="E-mail para acesso ao app"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={[styles.input, styles.passwordInput]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Senha para acesso ao app"
+                  secureTextEntry={!showPassword}
+                  placeholderTextColor="#999"
+                />
+                <TouchableOpacity
+                  style={styles.passwordToggle}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Icon
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={24}
+                    color="#666"
+                  />
+                </TouchableOpacity>
+              </View>
 
-            <Text style={styles.label}>Senha</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Senha para acesso ao app"
-              secureTextEntry
-            />
-
-            <Text style={styles.label}>Status</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={status}
-                onValueChange={(itemValue) => setStatus(itemValue)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Ativo" value="ativo" />
-                <Picker.Item label="Inativo" value="inativo" />
-              </Picker>
+              {renderStatusPicker()}
             </View>
 
             <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -429,11 +673,19 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 40,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 24,
     paddingHorizontal: 20,
     paddingBottom: 40,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   contentContainer: {
     flexGrow: 1,
@@ -450,43 +702,193 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#f8f9fa",
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 24,
     textAlign: "center",
+    color: "#1a73e8",
   },
   input: {
-    height: 50,
-    borderColor: "#ccc",
+    height: 56,
+    borderColor: "#e0e0e0",
     borderWidth: 1,
-    borderRadius: 10,
-    marginBottom: 15,
-    paddingLeft: 15,
-    justifyContent: "center",
+    borderRadius: 12,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    backgroundColor: "#f8f9fa",
+    color: "#202124",
   },
   pickerContainer: {
-    borderColor: "#ccc",
+    borderColor: "#e0e0e0",
     borderWidth: 1,
-    borderRadius: 10,
-    marginBottom: 15,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: "#f8f9fa",
+    overflow: "hidden",
   },
-  picker: { height: 50, width: "100%" },
+  picker: {
+    height: 56,
+    width: "100%",
+    color: "#202124",
+  },
   saveButton: {
-    backgroundColor: "#007bff",
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: "#1a73e8",
+    padding: 16,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 16,
+    shadowColor: "#1a73e8",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  saveButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  label: {
+  saveButtonText: {
+    color: "#fff",
     fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 5,
+    fontWeight: "600",
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+    color: "#202124",
+  },
+  dateInput: {
+    height: 56,
+    borderColor: "#e0e0e0",
+    borderWidth: 1,
+    borderRadius: 12,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    backgroundColor: "#f8f9fa",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dateInputText: {
+    fontSize: 16,
+    color: "#202124",
+  },
+  dateInputPlaceholder: {
+    color: "#999",
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000000",
+    marginBottom: 16,
+  },
+  pickerTrigger: {
+    height: 56,
+    borderColor: "#e0e0e0",
+    borderWidth: 1,
+    borderRadius: 12,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    backgroundColor: "#f8f9fa",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  pickerTriggerText: {
+    fontSize: 16,
+    color: "#202124",
+  },
+  pickerTriggerPlaceholder: {
+    color: "#999",
+  },
+  iosPickerContainer: {
+    backgroundColor: "#f8f9fa",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  iosPickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  iosPickerButton: {
+    padding: 8,
+  },
+  iosPickerButtonText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  iosPickerButtonTextConfirm: {
+    color: "#1a73e8",
+    fontWeight: "600",
+  },
+  iosPicker: {
+    backgroundColor: "#fff",
+  },
+  dragHandle: {
+    width: '100%',
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  dragIndicator: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 2,
+  },
+  iosDatePicker: {
+    backgroundColor: "#fff",
+    height: 200,
+  },
+  passwordContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  passwordInput: {
+    paddingRight: 50, // Espaço para o ícone
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    padding: 4,
   },
 });

@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
       setIsCreatingNewUser(true);
 
       const userQuery = query(
-        collection(LarApp_db, "user"),
+        collection(LarApp_db, "users"),
         where("email", "==", userData.email)
       );
       const querySnapshot = await getDocs(userQuery);
@@ -54,12 +54,13 @@ export const AuthProvider = ({ children }) => {
 
       const newUserData = {
         ...userData,
+        uid: auth.currentUser.uid,
         role: role.toLowerCase(),
         createdAt: new Date(),
         status: "ativo",
       };
 
-      const docRef = await addDoc(collection(LarApp_db, "user"), newUserData);
+      const docRef = await addDoc(collection(LarApp_db, "users"), newUserData);
       return { id: docRef.id, ...newUserData };
     } catch (error) {
       console.error("Erro ao criar usuário:", error);
@@ -80,7 +81,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       const userQuery = query(
-        collection(LarApp_db, "user"),
+        collection(LarApp_db, "users"),
         where("uid", "==", userId)
       );
       const querySnapshot = await getDocs(userQuery);
@@ -157,20 +158,57 @@ export const AuthProvider = ({ children }) => {
           break;
 
         case "utente":
-          unsubscribesRef.current.quartos = onSnapshot(
-            collection(LarApp_db, "quartos"),
-            (snapshot) => {
-              setQuartos(
-                snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-              );
-            }
+          if (!user?.uid) {
+            console.warn("User not available for utente listener setup");
+            return;
+          }
+
+          // Para utentes, buscar seus próprios dados usando o id que corresponde ao uid do usuário
+          const utenteQuery = query(
+            collection(LarApp_db, "utentes"),
+            where("id", "==", user.uid)  // Usando o uid do usuário para buscar pelo id na coleção utentes
           );
+          
+          unsubscribesRef.current.utenteData = onSnapshot(utenteQuery, (snapshot) => {
+            if (!snapshot.empty) {
+              const utenteData = snapshot.docs[0].data();
+              console.log("Dados do utente atualizados:", utenteData); // Log para debug
+              // Atualizar userData com os dados do utente
+              setUserData(prevData => ({
+                ...prevData,
+                contacto: utenteData.contacto,
+                morada: utenteData.morada,
+                dataNascimento: utenteData.dataNascimento,
+                quarto: utenteData.quarto,
+                medicamentos: utenteData.medicamentos || [],
+                atividades: utenteData.atividades || [],
+                dadosVitais: utenteData.dadosVitais || []
+              }));
+            } else {
+              console.warn("Nenhum documento encontrado para o utente com id:", user.uid);
+            }
+          });
+
+          // Também buscar dados do quarto do utente
+          if (userData?.quarto) {
+            const quartoQuery = query(
+              collection(LarApp_db, "quartos"),
+              where("id", "==", userData.quarto)
+            );
+            
+            unsubscribesRef.current.quartoData = onSnapshot(quartoQuery, (snapshot) => {
+              if (!snapshot.empty) {
+                const quartoData = snapshot.docs[0].data();
+                setQuartos([quartoData]);
+              }
+            });
+          }
           break;
       }
     } catch (error) {
       console.error("Erro ao configurar listeners:", error);
     }
-  }, []);
+  }, [user, userData?.quarto]);
 
   // Efeito principal para gerenciar autenticação
   useEffect(() => {
@@ -180,7 +218,7 @@ export const AuthProvider = ({ children }) => {
         if (storedUser) {
           const parsedUser = JSON.parse(storedUser);
           const userQuery = query(
-            collection(LarApp_db, "user"),
+            collection(LarApp_db, "users"),
             where("uid", "==", parsedUser.uid)
           );
           const userSnapshot = await getDocs(userQuery);
@@ -217,7 +255,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         const userQuery = query(
-          collection(LarApp_db, "user"),
+          collection(LarApp_db, "users"),
           where("uid", "==", firebaseUser.uid)
         );
         const userSnapshot = await getDocs(userQuery);
