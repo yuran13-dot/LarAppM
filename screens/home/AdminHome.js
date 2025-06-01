@@ -11,7 +11,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../hooks/AuthContext";
 import Icon from "react-native-vector-icons/Ionicons";
-import { collection, query, getDocs } from "firebase/firestore";
+import { collection, query, onSnapshot } from "firebase/firestore";
 import { LarApp_db } from "../../firebaseConfig";
 
 export default function AdminHome() {
@@ -24,31 +24,45 @@ export default function AdminHome() {
   });
 
   useEffect(() => {
-    const carregarTotais = async () => {
-      try {
-        // Buscar total de utentes
-        const utentesQuery = query(collection(LarApp_db, "utentes"));
-        const utentesSnapshot = await getDocs(utentesQuery);
-
-        // Buscar total de funcionários
-        const funcionariosQuery = query(collection(LarApp_db, "funcionarios"));
-        const funcionariosSnapshot = await getDocs(funcionariosQuery);
-
-        // Buscar total de quartos
-        const quartosQuery = query(collection(LarApp_db, "quartos"));
-        const quartosSnapshot = await getDocs(quartosQuery);
-
-        setTotais({
-          utentes: utentesSnapshot.size,
-          funcionarios: funcionariosSnapshot.size,
-          quartos: quartosSnapshot.size,
-        });
-      } catch (error) {
-        console.error("Erro ao carregar totais:", error);
+    // Buscar total de utentes
+    const unsubscribeUtentes = onSnapshot(
+      collection(LarApp_db, "utentes"),
+      (snapshot) => {
+        setTotais(prev => ({
+          ...prev,
+          utentes: snapshot.size
+        }));
       }
-    };
+    );
 
-    carregarTotais();
+    // Buscar total de funcionários
+    const unsubscribeFuncionarios = onSnapshot(
+      collection(LarApp_db, "funcionarios"),
+      (snapshot) => {
+        setTotais(prev => ({
+          ...prev,
+          funcionarios: snapshot.size
+        }));
+      }
+    );
+
+    // Buscar total de quartos
+    const unsubscribeQuartos = onSnapshot(
+      collection(LarApp_db, "quartos"),
+      (snapshot) => {
+        setTotais(prev => ({
+          ...prev,
+          quartos: snapshot.size
+        }));
+      }
+    );
+
+    // Cleanup function para remover os listeners quando o componente for desmontado
+    return () => {
+      unsubscribeUtentes();
+      unsubscribeFuncionarios();
+      unsubscribeQuartos();
+    };
   }, []);
 
   const menuItems = [

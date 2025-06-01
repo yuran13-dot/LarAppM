@@ -63,8 +63,12 @@ export default function MedicacaoUtentesScreen() {
     try {
       navigation.navigate("AdicionarMedicacaoUtente", {
         utenteId: utente.id,
-        numeroUtente: utente.numeroUtente,
-        nome: utente.nome,
+        name: utente.name,
+        contacto: utente.contacto,
+        dataNascimento: utente.dataNascimento,
+        email: utente.email,
+        quarto: utente.quarto,
+        status: utente.status,
         medicamentosAtuais: utente.medicamentos || [],
         onUpdate: carregarDados,
       });
@@ -86,7 +90,11 @@ export default function MedicacaoUtentesScreen() {
         onPress={() => adicionarMedicamentoAoUtente(item)}
       >
         <View style={styles.utenteInfo}>
-          <Text style={styles.utenteName}>{item.nome}</Text>
+          <Text style={styles.utenteName}>{item.name}</Text>
+          <Text style={styles.utenteDetails}>Quarto: {item.quarto}</Text>
+          <Text style={styles.utenteDetails}>Contacto: {item.contacto}</Text>
+          <Text style={styles.utenteDetails}>Nascimento: {item.dataNascimento}</Text>
+          <Text style={styles.utenteDetails}>Status: {item.status}</Text>
           <Text style={styles.medicamentosCount}>
             Medicamentos: {medicamentosAtivos}
           </Text>
@@ -98,8 +106,8 @@ export default function MedicacaoUtentesScreen() {
 
   const filteredUtentes = utentes.filter(
     (utente) =>
-      utente.nome.toLowerCase().includes(searchText.toLowerCase()) ||
-      utente.numeroUtente.toLowerCase().includes(searchText.toLowerCase())
+      (utente.name && utente.name.toLowerCase().includes(searchText.toLowerCase())) ||
+      (utente.id && utente.id.toLowerCase().includes(searchText.toLowerCase()))
   );
 
   return (

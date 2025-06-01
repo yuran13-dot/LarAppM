@@ -11,6 +11,8 @@ import AdicionarMedicacaoUtente from "../screens/Meds/AdicionarMedicacaoUtente";
 import PerfilUtente from "../screens/utentes/PerfilUtente";
 import AtividadesScreen from "../screens/atividades/AtividadesScreen";
 import DetalhesAtividadeScreen from "../screens/atividades/DetalhesAtividadeScreen";
+import UtenteActivities from "../screens/utentes/UtenteActivities";
+import UtenteMedicalInfo from "../screens/utentes/UtenteMedicalInfo";
 
 const Stack = createNativeStackNavigator();
 
@@ -20,6 +22,16 @@ export default function HomeStack() {
       <Stack.Screen
         name="HomeScreen"
         component={HomeScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="UtenteActivities"
+        component={UtenteActivities}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="UtenteMedicalInfo"
+        component={UtenteMedicalInfo}
         options={{ headerShown: false }}
       />
       <Stack.Screen

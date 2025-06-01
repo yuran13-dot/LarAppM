@@ -127,6 +127,7 @@ export default function AdicionarAtividadeScreen({ visible, onClose, onActivityA
                     textColor="#000000"
                     themeVariant="light"
                     locale="pt-PT"
+                    minuteInterval={1}
                   />
                 </View>
               )}

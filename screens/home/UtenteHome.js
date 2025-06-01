@@ -46,49 +46,26 @@ export default function UtenteHome() {
 
         <View style={styles.menuGrid}>
           {/* Profile Section */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate("Profile")}
-          >
-            <Icon name="person-outline" size={32} color="#007bff" />
-            <Text style={styles.menuText}>Meu Perfil</Text>
-          </TouchableOpacity>
-
-          {/* Schedule Section */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate("Agenda")}
-          >
-            <Icon name="calendar-outline" size={32} color="#007bff" />
-            <Text style={styles.menuText}>Agenda</Text>
-          </TouchableOpacity>
-
-          {/* Chat Section */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate("Chat")}
-          >
-            <Icon name="chatbubbles-outline" size={32} color="#007bff" />
-            <Text style={styles.menuText}>Mensagens</Text>
-          </TouchableOpacity>
-
+          
           {/* Activities Section */}
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('UtenteActivities', { userId: user?.uid })}
+          >
             <Icon name="fitness-outline" size={32} color="#007bff" />
             <Text style={styles.menuText}>Atividades</Text>
           </TouchableOpacity>
 
           {/* Medical Info */}
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('UtenteMedicalInfo')}
+          >
             <Icon name="medical-outline" size={32} color="#007bff" />
             <Text style={styles.menuText}>Informações Médicas</Text>
           </TouchableOpacity>
 
-          {/* Help */}
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="help-circle-outline" size={32} color="#007bff" />
-            <Text style={styles.menuText}>Ajuda</Text>
-          </TouchableOpacity>
+    
         </View>
 
         <View style={styles.infoSection}>

@@ -61,7 +61,7 @@ export default function DetalhesAtividadeScreen({ route, navigation }) {
                 console.log('Dados do utente encontrado:', utenteData);
                 participantesData.push({
                   utenteId: participante.id,
-                  nome: utenteData.nome || participante.nome,
+                  nome: utenteData.name || participante.nome,
                   ...utenteData
                 });
               } else {
@@ -121,7 +121,7 @@ export default function DetalhesAtividadeScreen({ route, navigation }) {
     setSearchQuery(text);
     if (text.length > 0) {
       const filtered = utentes.filter(utente => 
-        utente.nome.toLowerCase().includes(text.toLowerCase()) &&
+        utente.name.toLowerCase().includes(text.toLowerCase()) &&
         !participantes.some(p => p.utenteId === utente.id)
       );
       setSearchResults(filtered || []);
@@ -140,9 +140,7 @@ export default function DetalhesAtividadeScreen({ route, navigation }) {
   };
 
   const adicionarParticipante = async (utente) => {
-    console.log('Iniciando adição de participante:', utente);
-    
-    if (!utente || !utente.id || !utente.nome) {
+    if (!utente || !utente.id || !utente.name) {
       console.error('Dados do utente inválidos:', utente);
       Alert.alert('Erro', 'Dados do utente inválidos.');
       return;
@@ -150,31 +148,7 @@ export default function DetalhesAtividadeScreen({ route, navigation }) {
 
     try {
       const atividadeRef = doc(LarApp_db, 'atividades', atividadeId);
-      // Buscar o utente pelo número de utente em vez do ID
-      const utentesRef = collection(LarApp_db, 'utentes');
-      const q = query(utentesRef, where('numeroUtente', '==', utente.numeroUtente));
-      const querySnapshot = await getDocs(q);
-      
-      console.log('Buscando utente pelo número:', utente.numeroUtente);
-      
-      if (querySnapshot.empty) {
-        console.error('Utente não encontrado no Firestore:', utente.numeroUtente);
-        Alert.alert('Erro', 'Utente não encontrado no sistema.');
-        return;
-      }
-
-      const utenteDoc = querySnapshot.docs[0];
-      const utenteRef = utenteDoc.ref;
-      const utenteData = utenteDoc.data();
-      
-      console.log('Dados do utente encontrado:', utenteData);
-      
-      const atividadesAtuais = utenteData.atividades || [];
-      console.log('Atividades atuais do utente:', atividadesAtuais);
-
-      // Buscar dados atuais da atividade
       const atividadeDoc = await getDoc(atividadeRef);
-      console.log('Documento da atividade encontrado:', atividadeDoc.exists());
       
       if (!atividadeDoc.exists()) {
         console.error('Atividade não encontrada:', atividadeId);
@@ -183,72 +157,77 @@ export default function DetalhesAtividadeScreen({ route, navigation }) {
       }
 
       const atividadeData = atividadeDoc.data();
-      console.log('Dados da atividade:', atividadeData);
-
-      // Verificar se o utente já está na atividade
-      if (atividadesAtuais.some(a => a.id === atividadeId)) {
-        console.log('Utente já está na atividade');
-        Alert.alert('Aviso', 'Este utente já é participante da atividade.');
-        return;
-      }
-      
       const participantesAtuais = atividadeData.participantes || [];
-      console.log('Participantes atuais:', participantesAtuais);
 
       // Verificar se o utente já é participante
       if (participantesAtuais.some(p => p.id === utente.id)) {
-        console.log('Utente já é participante');
         Alert.alert('Aviso', 'Este utente já é participante da atividade.');
         return;
       }
 
-      // Adicionar o novo participante ao array com ID e nome
+      // Adicionar o novo participante ao array com apenas ID e nome
       const novoParticipante = {
         id: utente.id,
-        nome: utente.nome
+        nome: utente.name
       };
       
       const novosParticipantes = [...participantesAtuais, novoParticipante];
-      console.log('Novos participantes:', novosParticipantes);
       
-      // Preparar os dados completos da atividade para o utente
-      const dadosAtividade = {
-        id: atividadeId,
-        titulo: atividadeData.titulo || '',
-        descricao: atividadeData.descricao || '',
-        horario: atividadeData.horario || '',
-        local: atividadeData.local || '',
-        dataCriacao: atividadeData.dataCriacao || new Date(),
-        dataAtualizacao: new Date()
-      };
-      
-      // Atualizar o documento da atividade
-      await updateDoc(atividadeRef, {
+      // Preparar os dados para atualização
+      const dadosAtualizacao = {
         participantes: novosParticipantes,
         dataAtualizacao: new Date()
-      });
-      console.log('Atividade atualizada com sucesso');
+      };
 
-      // Atualizar o documento do utente com os dados completos da atividade
-      const atividadesAtualizadas = [...atividadesAtuais, dadosAtividade];
-      await updateDoc(utenteRef, {
-        atividades: atividadesAtualizadas
-      });
-      console.log('Utente atualizado com sucesso');
+      // Verificar se todos os campos necessários estão definidos
+      if (!dadosAtualizacao.participantes || !dadosAtualizacao.dataAtualizacao) {
+        throw new Error('Dados inválidos para atualização');
+      }
       
+      // Atualizar o documento da atividade
+      await updateDoc(atividadeRef, dadosAtualizacao);
+
+      // Atualizar o documento do utente
+      const utentesRef = collection(LarApp_db, 'utentes');
+      const q = query(utentesRef, where('id', '==', utente.id));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const utenteDoc = querySnapshot.docs[0];
+        const utenteRef = utenteDoc.ref;
+        const utenteData = utenteDoc.data();
+        const atividadesAtuais = utenteData.atividades || [];
+        
+        // Verificar se a atividade já está na lista do utente
+        if (!atividadesAtuais.some(a => a.id === atividadeId)) {
+          const novaAtividade = {
+            id: atividadeId,
+            titulo: atividadeData.titulo,
+            dataCriacao: atividadeData.dataCriacao,
+            horario: atividadeData.horario,
+            local: atividadeData.local
+          };
+          
+          const novasAtividades = [...atividadesAtuais, novaAtividade];
+          
+          const dadosUtenteAtualizacao = {
+            atividades: novasAtividades,
+            dataAtualizacao: new Date()
+          };
+          
+          await updateDoc(utenteRef, dadosUtenteAtualizacao);
+        }
+      } else {
+        console.error('Utente não encontrado:', utente.id);
+      }
+
       // Atualizar o estado local
-      setParticipantes(prev => [...prev, { utenteId: utente.id, ...utente }]);
+      setParticipantes(prev => [...prev, novoParticipante]);
       
       // Atualizar a lista de resultados da pesquisa
       setSearchResults(prev => prev.filter(u => u.id !== utente.id));
       setSearchQuery('');
       
-      // Atualizar a lista de utentes disponíveis
-      const availableUtentes = utentes.filter(u => 
-        !novosParticipantes.some(p => p.id === u.id)
-      );
-      setSearchResults(availableUtentes || []);
-
       Alert.alert('Sucesso', 'Participante adicionado com sucesso!');
     } catch (error) {
       console.error('Erro detalhado ao adicionar participante:', error);
@@ -436,7 +415,7 @@ export default function DetalhesAtividadeScreen({ route, navigation }) {
           {participantes.length > 0 ? (
             <FlatList
               data={participantes}
-              keyExtractor={item => item.utenteId}
+              keyExtractor={item => item.utenteId || item.id}
               renderItem={({ item }) => (
                 <View style={styles.participantItem}>
                   <View style={styles.participantInfo}>
@@ -444,7 +423,7 @@ export default function DetalhesAtividadeScreen({ route, navigation }) {
                     <Text style={styles.participantName}>{item.nome}</Text>
                   </View>
                   <TouchableOpacity
-                    onPress={() => removerParticipante(item.utenteId)}
+                    onPress={() => removerParticipante(item.utenteId || item.id)}
                     style={styles.removeButton}
                   >
                     <Icon name="close-circle" size={24} color="#ff4444" />
@@ -483,14 +462,14 @@ export default function DetalhesAtividadeScreen({ route, navigation }) {
 
             <FlatList
               data={searchResults}
-              keyExtractor={item => item.id}
+              keyExtractor={item => item.id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.searchResultItem}
                   onPress={() => adicionarParticipante(item)}
                 >
                   <Icon name="person" size={20} color="#666" />
-                  <Text style={styles.searchResultText}>{item.nome}</Text>
+                  <Text style={styles.searchResultText}>{item.name}</Text>
                   <Icon name="add-circle" size={24} color="#007bff" />
                 </TouchableOpacity>
               )}

@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../hooks/AuthContext'; // Importando o hook para acessar os dados do contexto
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { signOut } from 'firebase/auth';
 import { auth, LarApp_db } from '../../firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function ProfileScreen() {
   const { user, userData, fetchUserData } = useAuth(); // Consumindo os dados do contexto
@@ -14,30 +14,56 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
 
-  useEffect(() => {
-    const loadUserData = async () => {
-      if (!user) return;
+  const loadUserData = async () => {
+    if (!user) return;
 
-      try {
-        const userDocRef = doc(LarApp_db, 'user', user.uid);
-        const docSnap = await getDoc(userDocRef);
+    try {
+      // Primeiro buscar dados do usuário
+      const userQuery = query(
+        collection(LarApp_db, "users"),
+        where("uid", "==", user.uid)
+      );
+      const userSnapshot = await getDocs(userQuery);
 
-        if (docSnap.exists()) {
-          setProfileData(docSnap.data());
+      if (!userSnapshot.empty) {
+        const userData = userSnapshot.docs[0].data();
+        setProfileData(userData);
+
+        // Se for utente, buscar dados adicionais da coleção utentes
+        if (userData.role === "utente") {
+          const utenteQuery = query(
+            collection(LarApp_db, "utentes"),
+            where("id", "==", user.uid)
+          );
+          const utenteSnapshot = await getDocs(utenteQuery);
+
+          if (!utenteSnapshot.empty) {
+            const utenteData = utenteSnapshot.docs[0].data();
+            // Atualizar o estado com os dados do utente
+            setProfileData(prevData => ({
+              ...prevData,
+              ...utenteData
+            }));
+          }
         }
-      } catch (error) {
-        console.error('Erro ao carregar dados do usuário:', error);
-        Alert.alert(
-          'Erro',
-          'Não foi possível carregar os dados do usuário.'
-        );
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Erro ao carregar dados do usuário:', error);
+      Alert.alert(
+        'Erro',
+        'Não foi possível carregar os dados do usuário.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadUserData();
-  }, [user]);
+  // Usar useFocusEffect para recarregar os dados quando a tela receber foco
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserData();
+    }, [user])
+  );
 
   const handleLogout = async () => {
     Alert.alert(
@@ -128,69 +154,18 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.container}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informações Pessoais</Text>
-          
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <View style={styles.iconContainer}>
-                <Icon name="mail-outline" size={24} color="#007bff" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoText}>{user?.email || 'Email não disponível'}</Text>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.infoRow}>
-              <View style={styles.iconContainer}>
-                <Icon name="call-outline" size={24} color="#007bff" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Telefone</Text>
-                <Text style={styles.infoText}>{profileData?.phone || 'Não informado'}</Text>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.infoRow}>
-              <View style={styles.iconContainer}>
-                <Icon name="calendar-outline" size={24} color="#007bff" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Data de Nascimento</Text>
-                <Text style={styles.infoText}>{profileData?.nascimento || 'Não informado'}</Text>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.infoRow}>
-              <View style={styles.iconContainer}>
-                <Icon name="home-outline" size={24} color="#007bff" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Morada</Text>
-                <Text style={styles.infoText}>{profileData?.morada || 'Não informado'}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {profileData?.role === 'utente' && (
+        <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Informações Médicas</Text>
+            <Text style={styles.sectionTitle}>Informações Pessoais</Text>
+            
             <View style={styles.infoCard}>
               <View style={styles.infoRow}>
                 <View style={styles.iconContainer}>
-                  <Icon name="fitness-outline" size={24} color="#007bff" />
+                  <Icon name="mail-outline" size={24} color="#007bff" />
                 </View>
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Condições Médicas</Text>
-                  <Text style={styles.infoText}>{profileData?.condicoesMedicas || 'Não informado'}</Text>
+                  <Text style={styles.infoLabel}>Email</Text>
+                  <Text style={styles.infoText}>{user?.email || 'Email não disponível'}</Text>
                 </View>
               </View>
 
@@ -198,16 +173,97 @@ export default function ProfileScreen() {
 
               <View style={styles.infoRow}>
                 <View style={styles.iconContainer}>
-                  <Icon name="medical-outline" size={24} color="#007bff" />
+                  <Icon name="call-outline" size={24} color="#007bff" />
                 </View>
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Medicações</Text>
-                  <Text style={styles.infoText}>{profileData?.medicacoes || 'Não informado'}</Text>
+                  <Text style={styles.infoLabel}>Telefone</Text>
+                  <Text style={styles.infoText}>{profileData?.contacto || 'Não informado'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.infoRow}>
+                <View style={styles.iconContainer}>
+                  <Icon name="calendar-outline" size={24} color="#007bff" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Data de Nascimento</Text>
+                  <Text style={styles.infoText}>{profileData?.dataNascimento || 'Não informado'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.infoRow}>
+                <View style={styles.iconContainer}>
+                  <Icon name="home-outline" size={24} color="#007bff" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Morada</Text>
+                  <Text style={styles.infoText}>{profileData?.morada || 'Não informado'}</Text>
                 </View>
               </View>
             </View>
           </View>
-        )}
+
+          {profileData?.role === 'utente' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Informações Médicas</Text>
+              <View style={styles.infoCard}>
+               
+
+                <View style={styles.divider} />
+
+                <View style={styles.infoRow}>
+                  <View style={styles.iconContainer}>
+                    <Icon name="medical-outline" size={24} color="#007bff" />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Medicações</Text>
+                    <Text style={styles.infoText}>
+                      {profileData?.medicamentos?.length > 0 
+                        ? profileData.medicamentos.map(med => med.nome).join(', ')
+                        : 'Não informado'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.infoRow}>
+                  <View style={styles.iconContainer}>
+                    <Icon name="pulse-outline" size={24} color="#007bff" />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Sinais Vitais</Text>
+                    <Text style={styles.infoText}>
+                      {profileData?.dadosVitais?.length > 0 
+                        ? `Última medição: ${new Date(profileData.dadosVitais[profileData.dadosVitais.length - 1].data.toDate()).toLocaleString()}`
+                        : 'Não informado'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.infoRow}>
+                  <View style={styles.iconContainer}>
+                    <Icon name="calendar-outline" size={24} color="#007bff" />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Atividades</Text>
+                    <Text style={styles.infoText}>
+                      {profileData?.atividades?.length > 0 
+                        ? `${profileData.atividades.length} atividades agendadas`
+                        : 'Nenhuma atividade agendada'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
