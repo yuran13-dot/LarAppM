@@ -17,7 +17,147 @@ import Icon from "react-native-vector-icons/Ionicons";
 import { collection, addDoc } from "firebase/firestore";
 import { LarApp_db } from "../../firebaseConfig";
 import { Picker } from "@react-native-picker/picker";
-import styles from "./styles";
+
+const styles = {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContainer: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingTop: 30,
+  },
+  closeButton: {
+    position: "absolute",
+    right: 20,
+    top: 20,
+    zIndex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 20,
+  },
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    marginBottom: 15,
+    backgroundColor: "#fff",
+    color: "#000",
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 10,
+    marginBottom: 15,
+    backgroundColor: "#fff",
+    ...Platform.select({
+      ios: {
+        height: 50,
+        justifyContent: 'center',
+      },
+      android: {
+        height: 50,
+      }
+    })
+  },
+  picker: {
+    ...Platform.select({
+      ios: {
+        height: 50,
+        width: '100%',
+        color: '#000',
+      },
+      android: {
+        height: 50,
+        color: '#000',
+      }
+    })
+  },
+  pickerItem: {
+    fontSize: 16,
+    color: '#000',
+    height: 50,
+  },
+  stockContainer: {
+    marginTop: 10,
+    padding: 15,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 10,
+  },
+  stockTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 15,
+  },
+  stockRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  stockInput: {
+    flex: 1,
+    marginRight: 10,
+  },
+  unidadePicker: {
+    width: 120,
+  },
+  saveButton: {
+    backgroundColor: "#007bff",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  disabledButton: {
+    backgroundColor: "#ccc",
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 5,
+  },
+  requiredLabel: {
+    color: "#dc3545",
+    marginLeft: 4,
+  },
+  inputGroup: {
+    marginBottom: 15,
+  },
+  modalHeader: {
+    width: '100%',
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  dragHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 3,
+  },
+};
 
 export default function AddMedModal({ visible, onClose }) {
   const [nome, setNome] = useState("");
@@ -180,6 +320,10 @@ export default function AddMedModal({ visible, onClose }) {
             ]}
             onLayout={(e) => setModalHeight(e.nativeEvent.layout.height)}
           >
+            <View style={styles.modalHeader}>
+              <View style={styles.dragHandle} />
+            </View>
+
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <Icon name="close" size={30} color="#555" />
             </TouchableOpacity>
@@ -191,97 +335,176 @@ export default function AddMedModal({ visible, onClose }) {
             >
               <Text style={styles.modalTitle}>Adicionar Medicamento</Text>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Nome do Medicamento"
-                value={nome}
-                onChangeText={setNome}
-              />
-
-              <TextInput
-                style={styles.input}
-                placeholder="Dosagem (ex: 500mg)"
-                value={dosagem}
-                onChangeText={setDosagem}
-              />
-
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={tipo}
-                  onValueChange={(itemValue) => setTipo(itemValue)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Selecione o Tipo" value="" />
-                  <Picker.Item label="Comprimido" value="comprimido" />
-                  <Picker.Item label="Líquido" value="liquido" />
-                  <Picker.Item label="Injeção" value="injecao" />
-                  <Picker.Item label="Pomada" value="pomada" />
-                  <Picker.Item label="Outro" value="outro" />
-                </Picker>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Nome do Medicamento <Text style={styles.requiredLabel}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Digite o nome do medicamento"
+                  placeholderTextColor="#666"
+                  value={nome}
+                  onChangeText={setNome}
+                />
               </View>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Frequência (ex: 8 em 8 horas)"
-                value={frequencia}
-                onChangeText={setFrequencia}
-              />
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Dosagem <Text style={styles.requiredLabel}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex: 500mg"
+                  placeholderTextColor="#666"
+                  value={dosagem}
+                  onChangeText={setDosagem}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Tipo <Text style={styles.requiredLabel}>*</Text>
+                </Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={tipo}
+                    onValueChange={(itemValue) => setTipo(itemValue)}
+                    style={styles.picker}
+                    itemStyle={styles.pickerItem}
+                    mode="dropdown"
+                  >
+                    <Picker.Item 
+                      label="Selecione o Tipo" 
+                      value="" 
+                      color="#666"
+                    />
+                    <Picker.Item 
+                      label="Comprimido" 
+                      value="comprimido" 
+                      color="#000"
+                    />
+                    <Picker.Item 
+                      label="Líquido" 
+                      value="liquido" 
+                      color="#000"
+                    />
+                    <Picker.Item 
+                      label="Injeção" 
+                      value="injecao" 
+                      color="#000"
+                    />
+                    <Picker.Item 
+                      label="Pomada" 
+                      value="pomada" 
+                      color="#000"
+                    />
+                    <Picker.Item 
+                      label="Outro" 
+                      value="outro" 
+                      color="#000"
+                    />
+                  </Picker>
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Frequência <Text style={styles.requiredLabel}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex: 8 em 8 horas"
+                  placeholderTextColor="#666"
+                  value={frequencia}
+                  onChangeText={setFrequencia}
+                />
+              </View>
 
               <View style={styles.stockContainer}>
                 <Text style={styles.stockTitle}>Informações de Stock</Text>
 
                 <View style={styles.stockRow}>
-                  <TextInput
-                    style={[styles.input, styles.stockInput]}
-                    placeholder="Quantidade em Stock"
-                    value={quantidade}
-                    onChangeText={setQuantidade}
-                    keyboardType="numeric"
-                  />
+                  <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                    <Text style={styles.label}>
+                      Quantidade em Stock <Text style={styles.requiredLabel}>*</Text>
+                    </Text>
+                    <TextInput
+                      style={[styles.input, styles.stockInput]}
+                      placeholder="Digite a quantidade"
+                      placeholderTextColor="#666"
+                      value={quantidade}
+                      onChangeText={setQuantidade}
+                      keyboardType="numeric"
+                    />
+                  </View>
 
-                  <View style={[styles.pickerContainer, styles.unidadePicker]}>
-                    <Picker
-                      selectedValue={unidade}
-                      onValueChange={(itemValue) => setUnidade(itemValue)}
-                      style={styles.picker}
-                    >
-                      <Picker.Item label="Unidades" value="unidades" />
-                      <Picker.Item label="Caixas" value="caixas" />
-                      <Picker.Item label="Frascos" value="frascos" />
-                      <Picker.Item label="Ampolas" value="ampolas" />
-                      <Picker.Item label="Bisnagas" value="bisnagas" />
-                    </Picker>
+                  <View style={[styles.inputGroup, { width: 120 }]}>
+                    <Text style={styles.label}>Unidade</Text>
+                    <View style={[styles.pickerContainer, styles.unidadePicker]}>
+                      <Picker
+                        selectedValue={unidade}
+                        onValueChange={(itemValue) => setUnidade(itemValue)}
+                        style={styles.picker}
+                        itemStyle={styles.pickerItem}
+                        mode="dropdown"
+                      >
+                        <Picker.Item 
+                          label="Unidades" 
+                          value="unidades" 
+                          color="#000"
+                        />
+                        <Picker.Item 
+                          label="Caixas" 
+                          value="caixas" 
+                          color="#000"
+                        />
+                        <Picker.Item 
+                          label="Frascos" 
+                          value="frascos" 
+                          color="#000"
+                        />
+                      </Picker>
+                    </View>
                   </View>
                 </View>
 
-                <TextInput
-                  style={styles.input}
-                  placeholder="Quantidade Mínima Desejada"
-                  value={quantidadeMinima}
-                  onChangeText={setQuantidadeMinima}
-                  keyboardType="numeric"
-                />
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>
+                    Quantidade Mínima <Text style={styles.requiredLabel}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Digite a quantidade mínima"
+                    placeholderTextColor="#666"
+                    value={quantidadeMinima}
+                    onChangeText={setQuantidadeMinima}
+                    keyboardType="numeric"
+                  />
+                </View>
               </View>
 
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Observações"
-                value={observacoes}
-                onChangeText={setObservacoes}
-                multiline
-                numberOfLines={4}
-              />
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Observações</Text>
+                <TextInput
+                  style={[styles.input, { height: 100, textAlignVertical: "top" }]}
+                  placeholder="Digite observações adicionais (opcional)"
+                  placeholderTextColor="#666"
+                  value={observacoes}
+                  onChangeText={setObservacoes}
+                  multiline
+                />
+              </View>
 
               <TouchableOpacity
                 style={[
                   styles.saveButton,
-                  isSubmitting && styles.saveButtonDisabled,
+                  isSubmitting && styles.disabledButton,
                 ]}
                 onPress={handleSave}
                 disabled={isSubmitting}
               >
                 <Text style={styles.saveButtonText}>
-                  {isSubmitting ? "Salvando..." : "Salvar"}
+                  {isSubmitting ? "Adicionando..." : "Adicionar Medicamento"}
                 </Text>
               </TouchableOpacity>
             </ScrollView>

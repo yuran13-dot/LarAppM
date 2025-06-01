@@ -21,6 +21,8 @@ import LarScreen from "./screens/lar/LarScreen";
 import MedsScreen from "./screens/Meds/MedsScreen";
 import MedicacaoUtentesScreen from "./screens/Meds/MedicacaoUtentesScreen";
 import AdicionarMedicacaoUtente from "./screens/Meds/AdicionarMedicacaoUtente";
+import AtividadesScreen from "./screens/atividades/AtividadesScreen";
+import DetalhesAtividadeScreen from "./screens/atividades/DetalhesAtividadeScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -84,6 +86,16 @@ function GestaoStack() {
       <Stack.Screen
         name="AdicionarMedicacaoUtente"
         component={AdicionarMedicacaoUtente}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AtividadesScreen"
+        component={AtividadesScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="DetalhesAtividade"
+        component={DetalhesAtividadeScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

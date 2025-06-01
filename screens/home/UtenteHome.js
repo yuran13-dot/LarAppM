@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  SafeAreaView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../hooks/AuthContext";
@@ -15,7 +16,7 @@ export default function UtenteHome() {
   const navigation = useNavigation();
 
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Text style={styles.welcomeText}>
           Bem-vindo(a), {userData?.name || "Utente"}
@@ -23,114 +24,129 @@ export default function UtenteHome() {
         <Text style={styles.subtitle}>Tenha um ótimo dia!</Text>
       </View>
 
-      {/* Today's Schedule */}
-      <View style={styles.todaySection}>
-        <Text style={styles.sectionTitle}>Agenda de Hoje</Text>
-        <View style={styles.scheduleCard}>
-          <Icon name="time-outline" size={24} color="#007bff" />
-          <View style={styles.scheduleInfo}>
-            <Text style={styles.scheduleTime}>09:00</Text>
-            <Text style={styles.scheduleText}>Café da Manhã</Text>
+      <ScrollView style={styles.container}>
+        {/* Today's Schedule */}
+        <View style={styles.todaySection}>
+          <Text style={styles.sectionTitle}>Agenda de Hoje</Text>
+          <View style={styles.scheduleCard}>
+            <Icon name="time-outline" size={24} color="#007bff" />
+            <View style={styles.scheduleInfo}>
+              <Text style={styles.scheduleTime}>09:00</Text>
+              <Text style={styles.scheduleText}>Café da Manhã</Text>
+            </View>
+          </View>
+          <View style={styles.scheduleCard}>
+            <Icon name="fitness-outline" size={24} color="#007bff" />
+            <View style={styles.scheduleInfo}>
+              <Text style={styles.scheduleTime}>10:30</Text>
+              <Text style={styles.scheduleText}>Atividade Física</Text>
+            </View>
           </View>
         </View>
-        <View style={styles.scheduleCard}>
-          <Icon name="fitness-outline" size={24} color="#007bff" />
-          <View style={styles.scheduleInfo}>
-            <Text style={styles.scheduleTime}>10:30</Text>
-            <Text style={styles.scheduleText}>Atividade Física</Text>
+
+        <View style={styles.menuGrid}>
+          {/* Profile Section */}
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("Profile")}
+          >
+            <Icon name="person-outline" size={32} color="#007bff" />
+            <Text style={styles.menuText}>Meu Perfil</Text>
+          </TouchableOpacity>
+
+          {/* Schedule Section */}
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("Agenda")}
+          >
+            <Icon name="calendar-outline" size={32} color="#007bff" />
+            <Text style={styles.menuText}>Agenda</Text>
+          </TouchableOpacity>
+
+          {/* Chat Section */}
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("Chat")}
+          >
+            <Icon name="chatbubbles-outline" size={32} color="#007bff" />
+            <Text style={styles.menuText}>Mensagens</Text>
+          </TouchableOpacity>
+
+          {/* Activities Section */}
+          <TouchableOpacity style={styles.menuItem}>
+            <Icon name="fitness-outline" size={32} color="#007bff" />
+            <Text style={styles.menuText}>Atividades</Text>
+          </TouchableOpacity>
+
+          {/* Medical Info */}
+          <TouchableOpacity style={styles.menuItem}>
+            <Icon name="medical-outline" size={32} color="#007bff" />
+            <Text style={styles.menuText}>Informações Médicas</Text>
+          </TouchableOpacity>
+
+          {/* Help */}
+          <TouchableOpacity style={styles.menuItem}>
+            <Icon name="help-circle-outline" size={32} color="#007bff" />
+            <Text style={styles.menuText}>Ajuda</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.infoSection}>
+          <Text style={styles.sectionTitle}>Avisos Importantes</Text>
+          <View style={styles.infoCard}>
+            <Icon name="information-circle-outline" size={24} color="#007bff" />
+            <Text style={styles.infoText}>
+              Lembre-se de confirmar sua presença nas atividades do dia
+            </Text>
           </View>
         </View>
-      </View>
 
-      <View style={styles.menuGrid}>
-        {/* Profile Section */}
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate("Profile")}
-        >
-          <Icon name="person-outline" size={32} color="#007bff" />
-          <Text style={styles.menuText}>Meu Perfil</Text>
+        {/* Emergency Contact */}
+        <TouchableOpacity style={styles.emergencyButton}>
+          <Icon name="alert-circle-outline" size={24} color="#fff" />
+          <Text style={styles.emergencyText}>Contato de Emergência</Text>
         </TouchableOpacity>
-
-        {/* Schedule Section */}
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate("Agenda")}
-        >
-          <Icon name="calendar-outline" size={32} color="#007bff" />
-          <Text style={styles.menuText}>Agenda</Text>
-        </TouchableOpacity>
-
-        {/* Chat Section */}
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate("Chat")}
-        >
-          <Icon name="chatbubbles-outline" size={32} color="#007bff" />
-          <Text style={styles.menuText}>Mensagens</Text>
-        </TouchableOpacity>
-
-        {/* Activities Section */}
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="fitness-outline" size={32} color="#007bff" />
-          <Text style={styles.menuText}>Atividades</Text>
-        </TouchableOpacity>
-
-        {/* Medical Info */}
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="medical-outline" size={32} color="#007bff" />
-          <Text style={styles.menuText}>Informações Médicas</Text>
-        </TouchableOpacity>
-
-        {/* Help */}
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="help-circle-outline" size={32} color="#007bff" />
-          <Text style={styles.menuText}>Ajuda</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.infoSection}>
-        <Text style={styles.sectionTitle}>Avisos Importantes</Text>
-        <View style={styles.infoCard}>
-          <Icon name="information-circle-outline" size={24} color="#007bff" />
-          <Text style={styles.infoText}>
-            Lembre-se de confirmar sua presença nas atividades do dia
-          </Text>
-        </View>
-      </View>
-
-      {/* Emergency Contact */}
-      <TouchableOpacity style={styles.emergencyButton}>
-        <Icon name="alert-circle-outline" size={24} color="#fff" />
-        <Text style={styles.emergencyText}>Contato de Emergência</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: "#f6f6f6",
+    backgroundColor: "#007bff",
   },
   header: {
     padding: 20,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    paddingBottom: 15,
+    backgroundColor: "#007bff",
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#333",
+    color: "#fff",
+    marginBottom: 5,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
-    marginTop: 4,
+    color: "#fff",
+    opacity: 0.8,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
   },
   todaySection: {
     padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+    color: "#333",
   },
   scheduleCard: {
     backgroundColor: "#fff",
@@ -165,14 +181,14 @@ const styles = StyleSheet.create({
   menuGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    padding: 10,
+    padding: 15,
     justifyContent: "space-between",
   },
   menuItem: {
     width: "48%",
     backgroundColor: "#fff",
     padding: 20,
-    borderRadius: 10,
+    borderRadius: 15,
     alignItems: "center",
     marginVertical: 8,
     shadowColor: "#000",
@@ -192,12 +208,6 @@ const styles = StyleSheet.create({
   },
   infoSection: {
     padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 15,
-    color: "#333",
   },
   infoCard: {
     backgroundColor: "#fff",

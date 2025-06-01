@@ -58,7 +58,10 @@ export default function UtentesScreen({ navigation }) {
   );
 
   const renderItem = ({ item }) => (
-    <View style={styles.utenteItem}>
+    <TouchableOpacity 
+      style={styles.utenteItem}
+      onPress={() => navigation.navigate('PerfilUtente', { utenteId: item.id })}
+    >
       <View style={styles.utenteInfo}>
         <FontAwesome
           name="user-circle"
@@ -86,7 +89,8 @@ export default function UtentesScreen({ navigation }) {
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={styles.iconAction}
-            onPress={() => {
+            onPress={(e) => {
+              e.stopPropagation();
               setSelectedUtente(item);
               setEditModalVisible(true);
             }}
@@ -96,7 +100,8 @@ export default function UtentesScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.iconAction}
-            onPress={() => {
+            onPress={(e) => {
+              e.stopPropagation();
               setSelectedUtente(item);
               setGerenciarModalVisible(true);
             }}
@@ -105,7 +110,7 @@ export default function UtentesScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
