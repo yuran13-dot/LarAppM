@@ -13,6 +13,7 @@ import AtividadesScreen from "../screens/atividades/AtividadesScreen";
 import DetalhesAtividadeScreen from "../screens/atividades/DetalhesAtividadeScreen";
 import UtenteActivities from "../screens/utentes/UtenteActivities";
 import UtenteMedicalInfo from "../screens/utentes/UtenteMedicalInfo";
+import TarefasRealizadas from "../screens/funcionarios/TarefasRealizadas";
 
 const Stack = createNativeStackNavigator();
 
@@ -82,6 +83,11 @@ export default function HomeStack() {
       <Stack.Screen
         name="PerfilUtente"
         component={PerfilUtente}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TarefasRealizadas"
+        component={TarefasRealizadas}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

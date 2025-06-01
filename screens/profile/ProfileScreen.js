@@ -46,6 +46,24 @@ export default function ProfileScreen() {
             }));
           }
         }
+        
+        // Se for funcionario, buscar dados adicionais da coleção funcionarios
+        if (userData.role === "funcionario") {
+          const funcionarioQuery = query(
+            collection(LarApp_db, "funcionarios"),
+            where("id", "==", user.uid)
+          );
+          const funcionarioSnapshot = await getDocs(funcionarioQuery);
+
+          if (!funcionarioSnapshot.empty) {
+            const funcionarioData = funcionarioSnapshot.docs[0].data();
+            // Atualizar o estado com os dados do funcionário
+            setProfileData(prevData => ({
+              ...prevData,
+              ...funcionarioData
+            }));
+          }
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar dados do usuário:', error);
@@ -260,6 +278,41 @@ export default function ProfileScreen() {
                     </Text>
                   </View>
                 </View>
+              </View>
+            </View>
+          )}
+          
+          {profileData?.role === 'funcionario' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Informações Profissionais</Text>
+              <View style={styles.infoCard}>
+                <View style={styles.infoRow}>
+                  <View style={styles.iconContainer}>
+                    <Icon name="briefcase-outline" size={24} color="#007bff" />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Função</Text>
+                    <Text style={styles.infoText}>{profileData?.funcao || 'Não informado'}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+            
+                <View style={styles.infoRow}>
+                  <View style={styles.iconContainer}>
+                    <Icon name="people-outline" size={24} color="#007bff" />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Utentes Responsáveis</Text>
+                    <Text style={styles.infoText}>
+                      {profileData?.utentesResponsaveis?.length > 0 
+                        ? `${profileData.utentesResponsaveis.length} utentes`
+                        : 'Nenhum utente atribuído'}
+                    </Text>
+                  </View>
+                </View>
+                
               </View>
             </View>
           )}
