@@ -1,23 +1,67 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../hooks/AuthContext'; // Importando o hook para acessar os dados do contexto
 import { useNavigation } from '@react-navigation/native';
 import { signOut } from 'firebase/auth';
-import { auth } from '../../firebaseConfig';
+import { auth, LarApp_db } from '../../firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function ProfileScreen() {
-  const { user, userData } = useAuth(); // Consumindo os dados do contexto
+  const { user, userData, fetchUserData } = useAuth(); // Consumindo os dados do contexto
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState(null);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!user) return;
+
+      try {
+        const userDocRef = doc(LarApp_db, 'user', user.uid);
+        const docSnap = await getDoc(userDocRef);
+
+        if (docSnap.exists()) {
+          setProfileData(docSnap.data());
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do usuário:', error);
+        Alert.alert(
+          'Erro',
+          'Não foi possível carregar os dados do usuário.'
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [user]);
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      await AsyncStorage.removeItem('userData'); 
-    } catch (error) {
-      console.error('Erro ao sair:', error);
-    }
+    Alert.alert(
+      "Sair da Conta",
+      "Tem certeza que deseja sair?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Sair",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await signOut(auth);
+              await AsyncStorage.removeItem('userData'); 
+            } catch (error) {
+              console.error('Erro ao sair:', error);
+            }
+          }
+        }
+      ]
+    );
   }
 
   const getRoleLabel = (role) => {
@@ -41,18 +85,38 @@ export default function ProfileScreen() {
     );
   }
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007bff" />
+          <Text style={styles.loadingText}>Carregando dados...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View style={styles.headerLeft} />
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Icon name="log-out-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.avatarContainer}>
           <View style={styles.avatarCircle}>
-            <Icon name="person-circle-outline" size={80} color="#007bff" />
+            <Icon name="person-circle-outline" size={70} color="#fff" />
           </View>
-          <Text style={styles.userName}>{userData?.name || 'Nome não disponível'}</Text>
-          <Text style={styles.userRole}>{getRoleLabel(userData?.role)}</Text>
+          <Text style={styles.userName}>{profileData?.name || 'Nome não disponível'}</Text>
+          <View style={styles.roleBadge}>
+            <Text style={styles.userRole}>{getRoleLabel(profileData?.role)}</Text>
+          </View>
         </View>
         
-        {userData?.role?.toLowerCase() === 'admin' && (
+        {profileData?.role?.toLowerCase() === 'admin' && (
           <TouchableOpacity 
             style={styles.editButton}
             onPress={() => navigation.navigate('EditProfile')}
@@ -63,98 +127,134 @@ export default function ProfileScreen() {
         )}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Informações Pessoais</Text>
-        
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Icon name="mail-outline" size={20} color="#007bff" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoText}>{user?.email || 'Email não disponível'}</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Icon name="call-outline" size={20} color="#007bff" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Telefone</Text>
-              <Text style={styles.infoText}>{userData?.phone || 'Não informado'}</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Icon name="calendar-outline" size={20} color="#007bff" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Data de Nascimento</Text>
-              <Text style={styles.infoText}>{userData?.nascimento || 'Não informado'}</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Icon name="home-outline" size={20} color="#007bff" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Morada</Text>
-              <Text style={styles.infoText}>{userData?.morada || 'Não informado'}</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {userData?.role === 'utente' && (
+      <View style={styles.container}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informações Médicas</Text>
+          <Text style={styles.sectionTitle}>Informações Pessoais</Text>
+          
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
-              <Icon name="fitness-outline" size={20} color="#007bff" />
+              <View style={styles.iconContainer}>
+                <Icon name="mail-outline" size={24} color="#007bff" />
+              </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Condições Médicas</Text>
-                <Text style={styles.infoText}>{userData?.condicoesMedicas || 'Não informado'}</Text>
+                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoText}>{user?.email || 'Email não disponível'}</Text>
               </View>
             </View>
 
+            <View style={styles.divider} />
+
             <View style={styles.infoRow}>
-              <Icon name="medical-outline" size={20} color="#007bff" />
+              <View style={styles.iconContainer}>
+                <Icon name="call-outline" size={24} color="#007bff" />
+              </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Medicações</Text>
-                <Text style={styles.infoText}>{userData?.medicacoes || 'Não informado'}</Text>
+                <Text style={styles.infoLabel}>Telefone</Text>
+                <Text style={styles.infoText}>{profileData?.phone || 'Não informado'}</Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+              <View style={styles.iconContainer}>
+                <Icon name="calendar-outline" size={24} color="#007bff" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Data de Nascimento</Text>
+                <Text style={styles.infoText}>{profileData?.nascimento || 'Não informado'}</Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+              <View style={styles.iconContainer}>
+                <Icon name="home-outline" size={24} color="#007bff" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Morada</Text>
+                <Text style={styles.infoText}>{profileData?.morada || 'Não informado'}</Text>
               </View>
             </View>
           </View>
         </View>
-      )}
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Icon name="log-out-outline" size={20} color="#fff" />
-        <Text style={styles.logoutText}>Sair</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        {profileData?.role === 'utente' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Informações Médicas</Text>
+            <View style={styles.infoCard}>
+              <View style={styles.infoRow}>
+                <View style={styles.iconContainer}>
+                  <Icon name="fitness-outline" size={24} color="#007bff" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Condições Médicas</Text>
+                  <Text style={styles.infoText}>{profileData?.condicoesMedicas || 'Não informado'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.infoRow}>
+                <View style={styles.iconContainer}>
+                  <Icon name="medical-outline" size={24} color="#007bff" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Medicações</Text>
+                  <Text style={styles.infoText}>{profileData?.medicacoes || 'Não informado'}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#f6f6f6',
-    paddingTop: 30,
-    paddingBottom: 20,
+    backgroundColor: '#007bff',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
   },
   header: {
-    backgroundColor: '#fff',
-    padding: 20,
+    backgroundColor: '#007bff',
+    padding: 15,
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingBottom: 20,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 15,
+    marginBottom: 10,
+  },
+  headerLeft: {
+    width: 24,
   },
   avatarContainer: {
     alignItems: 'center',
-    marginBottom: 20,
   },
   avatarCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#f0f8ff',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
@@ -162,81 +262,103 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    color: '#fff',
+    marginBottom: 5,
+  },
+  roleBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 15,
   },
   userRole: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '500',
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#007bff',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 15,
+    marginTop: 10,
   },
   editButtonText: {
     color: '#fff',
-    marginLeft: 8,
-    fontSize: 16,
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
   },
   section: {
-    padding: 20,
+    padding: 15,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 15,
+    marginBottom: 12,
   },
   infoCard: {
     backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
+    borderRadius: 12,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f0f8ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   infoContent: {
-    marginLeft: 15,
     flex: 1,
   },
   infoLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
-    marginBottom: 2,
+    marginBottom: 3,
   },
   infoText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#333',
+    fontWeight: '500',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 4,
   },
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
-    backgroundColor: '#dc3545',
-    margin: 20,
-    padding: 15,
-    borderRadius: 10,
-  },
-  logoutText: {
-    color: '#fff',
-    fontSize: 16,
-    marginLeft: 8,
+    alignItems: 'center',
   },
   error: {
     color: '#dc3545',

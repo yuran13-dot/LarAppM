@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  SafeAreaView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../hooks/AuthContext";
@@ -81,7 +82,7 @@ export default function AdminHome() {
   ];
 
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Text style={styles.welcomeText}>
           Bem-vindo(a), {userData?.name || "Admin"}
@@ -89,85 +90,90 @@ export default function AdminHome() {
         <Text style={styles.subtitle}>Painel de Controle</Text>
       </View>
 
-      <View style={styles.statsContainer}>
-        <View style={styles.statsRow}>
-          <View style={[styles.statsCard, { backgroundColor: "#4CAF50" }]}>
-            <Icon name="people" size={30} color="#fff" />
-            <Text style={styles.statsNumber}>{totais.utentes}</Text>
-            <Text style={styles.statsLabel}>Utentes</Text>
-          </View>
+      <View style={styles.container}>
+        <View style={styles.statsContainer}>
+          <View style={styles.statsGrid}>
+            <View style={[styles.statsCard, { backgroundColor: "#4CAF50" }]}>
+              <Icon name="people" size={30} color="#fff" />
+              <Text style={styles.statsNumber}>{totais.utentes}</Text>
+              <Text style={styles.statsLabel}>Utentes</Text>
+            </View>
 
-          <View style={[styles.statsCard, { backgroundColor: "#2196F3" }]}>
-            <Icon name="person" size={30} color="#fff" />
-            <Text style={styles.statsNumber}>{totais.funcionarios}</Text>
-            <Text style={styles.statsLabel}>Funcionários</Text>
+            <View style={[styles.statsCard, { backgroundColor: "#2196F3" }]}>
+              <Icon name="person" size={30} color="#fff" />
+              <Text style={styles.statsNumber}>{totais.funcionarios}</Text>
+              <Text style={styles.statsLabel}>Funcionários</Text>
+            </View>
+
+            <View style={[styles.statsCard, { backgroundColor: "#FF9800" }]}>
+              <Icon name="bed" size={30} color="#fff" />
+              <Text style={styles.statsNumber}>{totais.quartos}</Text>
+              <Text style={styles.statsLabel}>Quartos</Text>
+            </View>
           </View>
         </View>
 
-        <View
-          style={[
-            styles.statsCard,
-            { backgroundColor: "#FF9800", width: "100%" },
-          ]}
-        >
-          <Icon name="bed" size={30} color="#fff" />
-          <Text style={styles.statsNumber}>{totais.quartos}</Text>
-          <Text style={styles.statsLabel}>Quartos</Text>
+        <View style={styles.menuGrid}>
+          {menuItems.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.menuItem}
+              onPress={item.onPress}
+            >
+              <Icon name={item.icon} size={32} color="#007bff" />
+              <Text style={styles.menuText}>{item.title}</Text>
+              <Text style={styles.menuDescription}>{item.description}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
-
-      <View style={styles.menuGrid}>
-        {menuItems.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.menuItem}
-            onPress={item.onPress}
-          >
-            <Icon name={item.icon} size={32} color="#007bff" />
-            <Text style={styles.menuText}>{item.title}</Text>
-            <Text style={styles.menuDescription}>{item.description}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    padding: 20,
+    backgroundColor: "#007bff",
   },
   header: {
-    marginTop: 40,
-    marginBottom: 30,
+    padding: 20,
+    paddingBottom: 15,
+    backgroundColor: "#007bff",
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#333",
+    color: "#fff",
+    marginBottom: 5,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
-    marginTop: 5,
+    color: "#fff",
+    opacity: 0.8,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
   },
   statsContainer: {
-    marginBottom: 30,
+    paddingHorizontal: 15,
+    marginBottom: 20,
   },
-  statsRow: {
+  statsGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10,
+    gap: 10,
   },
   statsCard: {
     flex: 1,
     backgroundColor: "#fff",
     borderRadius: 15,
-    padding: 20,
+    padding: 15,
     alignItems: "center",
-    marginHorizontal: 5,
     elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -188,13 +194,14 @@ const styles = StyleSheet.create({
   menuGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    padding: 15,
     justifyContent: "space-between",
   },
   menuItem: {
     width: "48%",
     backgroundColor: "#fff",
     borderRadius: 15,
-    padding: 20,
+    padding: 15,
     marginBottom: 15,
     alignItems: "center",
     elevation: 3,

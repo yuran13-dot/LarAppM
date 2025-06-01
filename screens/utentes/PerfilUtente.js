@@ -12,9 +12,11 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
-import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from "firebase/firestore";
 import { LarApp_db } from "../../firebaseConfig";
 import { useAuth } from "../../hooks/AuthContext";
 import { Picker } from "@react-native-picker/picker";
@@ -30,6 +32,13 @@ export default function PerfilUtente({ route, navigation }) {
   const [observacoes, setObservacoes] = useState("");
   const [dosagem, setDosagem] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [vitalSignsModalVisible, setVitalSignsModalVisible] = useState(false);
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [systolicBP, setSystolicBP] = useState("");
+  const [diastolicBP, setDiastolicBP] = useState("");
+  const [temperature, setTemperature] = useState("");
+  const [heartRate, setHeartRate] = useState("");
+  const [vitalSignsHistory, setVitalSignsHistory] = useState([]);
 
   useEffect(() => {
     carregarDadosUtente();
@@ -38,10 +47,15 @@ export default function PerfilUtente({ route, navigation }) {
   const carregarDadosUtente = async () => {
     try {
       setLoading(true);
-      const utenteRef = doc(LarApp_db, "utentes", utenteId);
-      const utenteDoc = await getDoc(utenteRef);
+      // Buscar na coleção utentes usando o ID
+      const utenteQuery = query(
+        collection(LarApp_db, "utentes"),
+        where("id", "==", utenteId)
+      );
+      const utenteSnapshot = await getDocs(utenteQuery);
 
-      if (utenteDoc.exists()) {
+      if (!utenteSnapshot.empty) {
+        const utenteDoc = utenteSnapshot.docs[0];
         setUtente({ id: utenteDoc.id, ...utenteDoc.data() });
       } else {
         Alert.alert("Erro", "Utente não encontrado");
@@ -84,7 +98,22 @@ export default function PerfilUtente({ route, navigation }) {
         return med;
       });
 
-      const utenteRef = doc(LarApp_db, "utentes", utenteId);
+      // Primeiro, buscar o documento do utente
+      const utenteQuery = query(
+        collection(LarApp_db, "utentes"),
+        where("id", "==", utenteId)
+      );
+      const utenteSnapshot = await getDocs(utenteQuery);
+
+      if (utenteSnapshot.empty) {
+        Alert.alert("Erro", "Utente não encontrado");
+        return;
+      }
+
+      const utenteDoc = utenteSnapshot.docs[0];
+      const utenteRef = doc(LarApp_db, "utentes", utenteDoc.id);
+
+      // Atualizar o documento
       await updateDoc(utenteRef, {
         medicamentos: medicamentosAtualizados,
       });
@@ -156,14 +185,79 @@ export default function PerfilUtente({ route, navigation }) {
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    carregarDadosUtente().then(() => setRefreshing(false));
+    carregarDadosUtente().then(() => {
+      setRefreshing(false);
+    });
   }, []);
 
-  if (loading || !utente) {
+  const atualizarVitalSigns = async () => {
+    try {
+      if (!systolicBP || !diastolicBP || !temperature || !heartRate) {
+        Alert.alert("Erro", "Por favor, preencha todos os campos");
+        return;
+      }
+
+      const newVitalSigns = {
+        timestamp: Timestamp.now(),
+        systolicBP: parseInt(systolicBP),
+        diastolicBP: parseInt(diastolicBP),
+        temperature: parseFloat(temperature),
+        heartRate: parseInt(heartRate),
+        recordedBy: userData?.name || "Funcionário"
+      };
+
+      const utenteQuery = query(
+        collection(LarApp_db, "utentes"),
+        where("id", "==", utenteId)
+      );
+      const utenteSnapshot = await getDocs(utenteQuery);
+
+      if (utenteSnapshot.empty) {
+        Alert.alert("Erro", "Utente não encontrado");
+        return;
+      }
+
+      const utenteDoc = utenteSnapshot.docs[0];
+      const utenteRef = doc(LarApp_db, "utentes", utenteDoc.id);
+
+      const updatedVitalSignsHistory = [...(utente.vitalSignsHistory || []), newVitalSigns];
+
+      await updateDoc(utenteRef, {
+        vitalSignsHistory: updatedVitalSignsHistory
+      });
+
+      setUtente(prev => ({
+        ...prev,
+        vitalSignsHistory: updatedVitalSignsHistory
+      }));
+
+      setVitalSignsModalVisible(false);
+      setSystolicBP("");
+      setDiastolicBP("");
+      setTemperature("");
+      setHeartRate("");
+      Alert.alert("Sucesso", "Sinais vitais registrados com sucesso");
+    } catch (error) {
+      console.error("Erro ao atualizar sinais vitais:", error);
+      Alert.alert("Erro", "Não foi possível registrar os sinais vitais");
+    }
+  };
+
+  if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
           <Text style={styles.loadingText}>Carregando...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!utente) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Text style={styles.loadingText}>Utente não encontrado</Text>
         </View>
       </SafeAreaView>
     );
@@ -187,7 +281,8 @@ export default function PerfilUtente({ route, navigation }) {
         >
           <Icon name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Perfil do Utente</Text>
+        <Text style={styles.headerTitle}>{utente?.nome || "Perfil do Utente"}</Text>
+        <View style={styles.headerRight} />
       </View>
 
       <View style={styles.infoSection}>
@@ -195,11 +290,7 @@ export default function PerfilUtente({ route, navigation }) {
           <View style={styles.avatarContainer}>
             <Icon name="person-circle" size={80} color="#007bff" />
           </View>
-          <Text style={styles.nome}>{utente.nome}</Text>
-          <View style={styles.infoRow}>
-            <Icon name="card" size={20} color="#666" style={styles.infoIcon} />
-            <Text style={styles.info}>Nº Utente: {utente.numeroUtente}</Text>
-          </View>
+         
           <View style={styles.infoRow}>
             <Icon
               name="calendar"
@@ -234,6 +325,69 @@ export default function PerfilUtente({ route, navigation }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Sinais Vitais</Text>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setVitalSignsModalVisible(true)}
+            >
+              <Icon name="add-circle-outline" size={24} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
+
+          {utente.vitalSignsHistory && utente.vitalSignsHistory.length > 0 ? (
+            <View style={styles.vitalSignsContainer}>
+              <View style={styles.mainVitalSignsCard}>
+                <View style={styles.vitalSignsHeader}>
+                  <Icon name="pulse-outline" size={24} color="#007bff" />
+                  <Text style={styles.vitalSignsTitle}>Sinais Vitais</Text>
+                  <TouchableOpacity 
+                    style={styles.historyButton}
+                    onPress={() => setHistoryModalVisible(true)}
+                  >
+                    <Icon name="time-outline" size={24} color="#007bff" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.vitalSignsGrid}>
+                  <View style={[styles.vitalSignCard, { backgroundColor: '#e3f2fd' }]}>
+                    <Icon name="pulse" size={24} color="#1976d2" style={styles.vitalSignIcon} />
+                    <Text style={styles.vitalSignLabel}>Pressão Arterial</Text>
+                    <Text style={styles.vitalSignValue}>
+                      {utente.vitalSignsHistory[utente.vitalSignsHistory.length - 1].systolicBP}/
+                      {utente.vitalSignsHistory[utente.vitalSignsHistory.length - 1].diastolicBP}
+                    </Text>
+                    <Text style={styles.vitalSignUnit}>mmHg</Text>
+                  </View>
+
+                  <View style={[styles.vitalSignCard, { backgroundColor: '#fff9c4' }]}>
+                    <Icon name="thermometer" size={24} color="#f57f17" style={styles.vitalSignIcon} />
+                    <Text style={styles.vitalSignLabel}>Temperatura</Text>
+                    <Text style={styles.vitalSignValue}>
+                      {utente.vitalSignsHistory[utente.vitalSignsHistory.length - 1].temperature}
+                    </Text>
+                    <Text style={styles.vitalSignUnit}>°C</Text>
+                  </View>
+
+                  <View style={[styles.vitalSignCard, { backgroundColor: '#e8f5e9' }]}>
+                    <Icon name="heart" size={24} color="#2e7d32" style={styles.vitalSignIcon} />
+                    <Text style={styles.vitalSignLabel}>Freq. Cardíaca</Text>
+                    <Text style={styles.vitalSignValue}>
+                      {utente.vitalSignsHistory[utente.vitalSignsHistory.length - 1].heartRate}
+                    </Text>
+                    <Text style={styles.vitalSignUnit}>bpm</Text>
+                  </View>
+                </View>
+                <Text style={styles.vitalSignsTimestamp}>
+                  Última atualização: {new Date(utente.vitalSignsHistory[utente.vitalSignsHistory.length - 1].timestamp.toDate()).toLocaleString()}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.noDataText}>Nenhum registro de sinais vitais</Text>
+          )}
+        </View>
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Medicamentos Pendentes</Text>
@@ -404,26 +558,83 @@ export default function PerfilUtente({ route, navigation }) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Próximas Atividades</Text>
-          {atividadesPendentes.length > 0 ? (
-            atividadesPendentes.map((atividade, index) => (
-              <View key={index} style={styles.itemCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Atividades do Utente</Text>
+            <Text style={styles.countBadge}>{utente.atividades?.length || 0}</Text>
+          </View>
+          {utente.atividades && utente.atividades.length > 0 ? (
+            utente.atividades.map((atividade, index) => (
+              <TouchableOpacity
+                key={`atividade-${index}`}
+                style={[styles.itemCard, { marginBottom: 10 }]}
+              >
                 <View style={styles.itemInfo}>
-                  <Text style={styles.itemTitle}>{atividade.nome}</Text>
-                  <Text style={styles.itemDetails}>
-                    Horário: {atividade.horario}
-                  </Text>
+                  <View style={styles.medicamentoHeader}>
+                    <Text style={styles.itemTitle}>{atividade.nome || atividade.titulo || "Atividade sem nome"}</Text>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: atividade.status === "concluída" ? "#28a745" : "#ffc107" },
+                      ]}
+                    >
+                      <Icon
+                        name={atividade.status === "concluída" ? "checkmark-circle" : "time"}
+                        size={16}
+                        color="#fff"
+                      />
+                      <Text style={styles.statusText}>
+                        {atividade.status === "concluída" ? "Concluída" : "Pendente"}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.medicamentoDetails}>
+                    <View style={styles.detailRow}>
+                      <Icon name="time" size={16} color="#666" style={styles.detailIcon} />
+                      <Text style={styles.itemDetails}>Horário: {atividade.horario}</Text>
+                    </View>
+                    {atividade.descricao && (
+                      <View style={styles.detailRow}>
+                        <Icon name="document-text" size={16} color="#666" style={styles.detailIcon} />
+                        <Text style={styles.itemDetails}>Descrição: {atividade.descricao}</Text>
+                      </View>
+                    )}
+                    {atividade.local && (
+                      <View style={styles.detailRow}>
+                        <Icon name="location" size={16} color="#666" style={styles.detailIcon} />
+                        <Text style={styles.itemDetails}>Local: {atividade.local}</Text>
+                      </View>
+                    )}
+                  </View>
+                  {atividade.status === "concluída" && atividade.dataConclusao && (
+                    <View style={styles.adminInfoContainer}>
+                      <Icon name="calendar" size={16} color="#666" style={styles.detailIcon} />
+                      <Text style={styles.adminInfo}>
+                        Concluída em: {new Date(atividade.dataConclusao).toLocaleString()}
+                      </Text>
+                    </View>
+                  )}
+                  {atividade.observacoes && (
+                    <View style={styles.observacoesContainer}>
+                      <Icon name="document-text" size={16} color="#666" style={styles.detailIcon} />
+                      <Text style={styles.observacoes}>{atividade.observacoes}</Text>
+                    </View>
+                  )}
                 </View>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => marcarAtividadeConcluida(index)}
-                >
-                  <Icon name="checkmark-circle" size={24} color="#28a745" />
-                </TouchableOpacity>
-              </View>
+                {atividade.status !== "concluída" && (
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => marcarAtividadeConcluida(index)}
+                  >
+                    <Icon name="checkmark-circle" size={24} color="#28a745" />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
             ))
           ) : (
-            <Text style={styles.emptyText}>Nenhuma atividade pendente</Text>
+            <View style={styles.emptyContainer}>
+              <Icon name="list" size={40} color="#6c757d" />
+              <Text style={styles.emptyText}>Nenhuma atividade registrada</Text>
+            </View>
           )}
         </View>
       </ScrollView>
@@ -434,77 +645,218 @@ export default function PerfilUtente({ route, navigation }) {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Atualizar Medicamento</Text>
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Icon name="close" size={24} color="#333" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.modalInfoSection}>
+                  <Text style={styles.modalInfoTitle}>
+                    {medicamentoSelecionado?.nome}
+                  </Text>
+                  <View style={styles.modalInfoRow}>
+                    <Icon
+                      name="medical"
+                      size={16}
+                      color="#666"
+                      style={styles.modalInfoIcon}
+                    />
+                    <Text style={styles.modalInfoText}>
+                      Dosagem: {medicamentoSelecionado?.dosagem}
+                    </Text>
+                  </View>
+                  <View style={styles.modalInfoRow}>
+                    <Icon
+                      name="time"
+                      size={16}
+                      color="#666"
+                      style={styles.modalInfoIcon}
+                    />
+                    <Text style={styles.modalInfoText}>
+                      Horário: {medicamentoSelecionado?.horario}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.modalDivider} />
+
+                <Text style={styles.modalLabel}>Status</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={novoStatus}
+                    onValueChange={(itemValue) => setNovoStatus(itemValue)}
+                    style={[styles.picker, { color: '#333' }]}
+                    itemStyle={Platform.OS === 'ios' ? { 
+                      height: 50,
+                      color: '#333',
+                      fontSize: 16
+                    } : undefined}
+                    mode={Platform.OS === 'ios' ? 'dropdown' : 'dialog'}
+                  >
+                    <Picker.Item label="Pendente" value="pendente" color="#333" />
+                    <Picker.Item label="Tomado" value="tomado" color="#333" />
+                    <Picker.Item label="Atrasado" value="atrasado" color="#333" />
+                  </Picker>
+                </View>
+
+                <Text style={styles.modalLabel}>Observações</Text>
+                <TextInput
+                  style={[styles.modalInput, styles.textArea]}
+                  value={observacoes}
+                  onChangeText={setObservacoes}
+                  placeholder="Digite as observações"
+                  multiline
+                  numberOfLines={4}
+                />
+
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={atualizarMedicamento}
+                >
+                  <Text style={styles.saveButtonText}>Salvar Alterações</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={vitalSignsModalVisible}
+        onRequestClose={() => setVitalSignsModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Registrar Sinais Vitais</Text>
+              
+              <Text style={styles.inputLabel}>Pressão Arterial Sistólica (mmHg)</Text>
+              <TextInput
+                style={styles.input}
+                value={systolicBP}
+                onChangeText={setSystolicBP}
+                keyboardType="numeric"
+                placeholder="Ex: 120"
+              />
+
+              <Text style={styles.inputLabel}>Pressão Arterial Diastólica (mmHg)</Text>
+              <TextInput
+                style={styles.input}
+                value={diastolicBP}
+                onChangeText={setDiastolicBP}
+                keyboardType="numeric"
+                placeholder="Ex: 80"
+              />
+
+              <Text style={styles.inputLabel}>Temperatura (°C)</Text>
+              <TextInput
+                style={styles.input}
+                value={temperature}
+                onChangeText={setTemperature}
+                keyboardType="numeric"
+                placeholder="Ex: 36.5"
+              />
+
+              <Text style={styles.inputLabel}>Frequência Cardíaca (bpm)</Text>
+              <TextInput
+                style={styles.input}
+                value={heartRate}
+                onChangeText={setHeartRate}
+                keyboardType="numeric"
+                placeholder="Ex: 75"
+              />
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setVitalSignsModalVisible(false)}
+                >
+                  <Text style={styles.buttonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.saveButton]}
+                  onPress={atualizarVitalSigns}
+                >
+                  <Text style={styles.buttonText}>Salvar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={historyModalVisible}
+        onRequestClose={() => setHistoryModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Atualizar Medicamento</Text>
+              <Text style={styles.modalTitle}>Histórico de Sinais Vitais</Text>
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => setModalVisible(false)}
+                onPress={() => setHistoryModalVisible(false)}
               >
                 <Icon name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalInfoSection}>
-              <Text style={styles.modalInfoTitle}>
-                {medicamentoSelecionado?.nome}
-              </Text>
-              <View style={styles.modalInfoRow}>
-                <Icon
-                  name="medical"
-                  size={16}
-                  color="#666"
-                  style={styles.modalInfoIcon}
-                />
-                <Text style={styles.modalInfoText}>
-                  Dosagem: {medicamentoSelecionado?.dosagem}
-                </Text>
-              </View>
-              <View style={styles.modalInfoRow}>
-                <Icon
-                  name="time"
-                  size={16}
-                  color="#666"
-                  style={styles.modalInfoIcon}
-                />
-                <Text style={styles.modalInfoText}>
-                  Horário: {medicamentoSelecionado?.horario}
-                </Text>
-              </View>
-            </View>
+            <ScrollView style={styles.historyList}>
+              {utente.vitalSignsHistory && utente.vitalSignsHistory.length > 0 ? (
+                utente.vitalSignsHistory.slice().reverse().map((record, index) => (
+                  <View key={index} style={styles.historyItem}>
+                    <View style={styles.historyHeader}>
+                      <Text style={styles.historyDate}>
+                        {new Date(record.timestamp.toDate()).toLocaleString()}
+                      </Text>
+                      <Text style={styles.historyRecordedBy}>
+                        Registrado por: {record.recordedBy}
+                      </Text>
+                    </View>
+                    <View style={styles.historyGrid}>
+                      <View style={[styles.historyValueCard, { backgroundColor: '#e3f2fd' }]}>
+                        <Text style={styles.historyLabel}>Pressão Arterial</Text>
+                        <Text style={styles.historyValue}>
+                          {record.systolicBP}/{record.diastolicBP}
+                        </Text>
+                        <Text style={styles.historyUnit}>mmHg</Text>
+                      </View>
 
-            <View style={styles.modalDivider} />
+                      <View style={[styles.historyValueCard, { backgroundColor: '#fff9c4' }]}>
+                        <Text style={styles.historyLabel}>Temperatura</Text>
+                        <Text style={styles.historyValue}>
+                          {record.temperature}
+                        </Text>
+                        <Text style={styles.historyUnit}>°C</Text>
+                      </View>
 
-            <Text style={styles.modalLabel}>Status</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={novoStatus}
-                onValueChange={(itemValue) => setNovoStatus(itemValue)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Pendente" value="pendente" />
-                <Picker.Item label="Tomado" value="tomado" />
-                <Picker.Item label="Atrasado" value="atrasado" />
-              </Picker>
-            </View>
-
-            <Text style={styles.modalLabel}>Observações</Text>
-            <TextInput
-              style={[styles.modalInput, styles.textArea]}
-              value={observacoes}
-              onChangeText={setObservacoes}
-              placeholder="Digite as observações"
-              multiline
-              numberOfLines={4}
-            />
-
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={atualizarMedicamento}
-            >
-              <Text style={styles.saveButtonText}>Salvar Alterações</Text>
-            </TouchableOpacity>
+                      <View style={[styles.historyValueCard, { backgroundColor: '#e8f5e9' }]}>
+                        <Text style={styles.historyLabel}>Freq. Cardíaca</Text>
+                        <Text style={styles.historyValue}>
+                          {record.heartRate}
+                        </Text>
+                        <Text style={styles.historyUnit}>bpm</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.noDataText}>Nenhum registro de sinais vitais</Text>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -532,12 +884,17 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 5,
+    width: 40,
   },
   headerTitle: {
+    flex: 1,
     fontSize: 20,
     fontWeight: "bold",
     color: "#333",
-    marginLeft: 10,
+    textAlign: "center",
+  },
+  headerRight: {
+    width: 40,
   },
   infoSection: {
     backgroundColor: "#fff",
@@ -758,9 +1115,29 @@ const styles = StyleSheet.create({
     borderColor: "#e0e0e0",
     borderRadius: 10,
     marginBottom: 15,
+    backgroundColor: "#fff",
+    ...Platform.select({
+      ios: {
+        height: 50,
+        justifyContent: 'center',
+        paddingHorizontal: 10,
+      },
+      android: {
+        height: 50,
+      },
+    }),
   },
   picker: {
-    height: 50,
+    ...Platform.select({
+      ios: {
+        height: 50,
+        width: '100%',
+        color: '#333',
+      },
+      android: {
+        height: 50,
+      },
+    }),
   },
   modalInput: {
     borderWidth: 1,
@@ -816,5 +1193,202 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#e0e0e0",
     marginVertical: 15,
+  },
+  addButton: {
+    padding: 5,
+  },
+  vitalSignsContainer: {
+    padding: 10,
+  },
+  mainVitalSignsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 15,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  vitalSignsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingBottom: 10,
+    justifyContent: 'center',
+  },
+  vitalSignsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#007bff',
+    marginLeft: 8,
+  },
+  vitalSignsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  vitalSignCard: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 15,
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  vitalSignIcon: {
+    marginBottom: 8,
+  },
+  vitalSignLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  vitalSignValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 2,
+  },
+  vitalSignUnit: {
+    fontSize: 12,
+    color: '#666',
+  },
+  vitalSignsTimestamp: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 15,
+    textAlign: 'center',
+  },
+  noDataText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginTop: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+  },
+  modalButton: {
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: "#007bff",
+    alignItems: "center",
+  },
+  cancelButton: {
+    backgroundColor: "#dc3545",
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 5,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 15,
+    fontSize: 16,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  historyButton: {
+    marginLeft: 'auto',
+    padding: 5,
+  },
+  historyList: {
+    maxHeight: '80%',
+  },
+  historyItem: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  historyHeader: {
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingBottom: 10,
+  },
+  historyDate: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  historyRecordedBy: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  historyGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  historyValueCard: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  historyLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  historyValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  historyUnit: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 2,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingBottom: 10,
   },
 });

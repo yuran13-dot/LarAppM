@@ -7,9 +7,10 @@ import {
   FlatList,
   Alert,
   TextInput,
+  Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, getDoc, query, where } from "firebase/firestore";
 import { LarApp_db } from "../../firebaseConfig";
 import { Picker } from "@react-native-picker/picker";
 
@@ -20,6 +21,28 @@ export default function AdicionarMedicacaoUtente({ route, navigation }) {
   const [medicamentoSelecionado, setMedicamentoSelecionado] = useState("");
   const [horario, setHorario] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const horariosDisponiveis = [
+    "06:00",
+    "07:00",
+    "08:00",
+    "09:00",
+    "10:00",
+    "11:00",
+    "12:00",
+    "13:00",
+    "14:00",
+    "15:00",
+    "16:00",
+    "17:00",
+    "18:00",
+    "19:00",
+    "20:00",
+    "21:00",
+    "22:00",
+    "23:00",
+    "00:00",
+  ];
 
   useEffect(() => {
     carregarMedicamentos();
@@ -80,9 +103,22 @@ export default function AdicionarMedicacaoUtente({ route, navigation }) {
     }
 
     try {
+      console.log("Iniciando adição de medicamento...");
+      console.log("Medicamento selecionado:", medicamentoSelecionado);
+      console.log("Horário selecionado:", horario);
+      console.log("ID do utente:", utenteId);
+
       const medicamento = medicamentos.find(
         (m) => m.id === medicamentoSelecionado
       );
+
+      if (!medicamento) {
+        Alert.alert("Erro", "Medicamento não encontrado. Por favor, tente novamente.");
+        return;
+      }
+
+      console.log("Medicamento encontrado:", medicamento);
+
       const novoMedicamento = {
         id: medicamentoSelecionado,
         nome: medicamento.nome,
@@ -92,40 +128,104 @@ export default function AdicionarMedicacaoUtente({ route, navigation }) {
         dataInicio: new Date(),
       };
 
-      const utenteRef = doc(LarApp_db, "utentes", utenteId);
+      console.log("Novo medicamento a ser adicionado:", novoMedicamento);
+
+      // Primeiro, buscar o documento do utente usando uma query
+      const utenteQuery = query(
+        collection(LarApp_db, "utentes"),
+        where("id", "==", utenteId)
+      );
+      const utenteSnapshot = await getDocs(utenteQuery);
+
+      if (utenteSnapshot.empty) {
+        console.error("Utente não encontrado com ID:", utenteId);
+        Alert.alert("Erro", "Utente não encontrado. Por favor, tente novamente.");
+        return;
+      }
+
+      const utenteDoc = utenteSnapshot.docs[0];
+      console.log("Documento do utente encontrado:", utenteDoc.id);
+
+      const utenteRef = doc(LarApp_db, "utentes", utenteDoc.id);
+      const medicamentosAtuais = utenteDoc.data().medicamentos || [];
       const novosMedicamentos = [...medicamentosAtuais, novoMedicamento];
+
+      console.log("Medicamentos atuais:", medicamentosAtuais);
+      console.log("Novos medicamentos:", novosMedicamentos);
 
       await updateDoc(utenteRef, {
         medicamentos: novosMedicamentos,
       });
 
+      console.log("Medicamento adicionado com sucesso!");
       Alert.alert("Sucesso", "Medicamento adicionado com sucesso!");
       onUpdate && onUpdate();
       navigation.goBack();
     } catch (error) {
-      console.error("Erro ao adicionar medicamento:", error);
-      Alert.alert("Erro", "Não foi possível adicionar o medicamento.");
+      console.error("Erro detalhado ao adicionar medicamento:", error);
+      Alert.alert(
+        "Erro", 
+        "Não foi possível adicionar o medicamento. Por favor, tente novamente."
+      );
     }
   };
 
   const removerMedicamento = async (medicamentoId) => {
-    try {
-      const utenteRef = doc(LarApp_db, "utentes", utenteId);
-      const novosMedicamentos = medicamentosAtuais.filter(
-        (med) => med.id !== medicamentoId
-      );
-
-      await updateDoc(utenteRef, {
-        medicamentos: novosMedicamentos,
-      });
-
-      Alert.alert("Sucesso", "Medicamento removido com sucesso!");
-      onUpdate && onUpdate();
-      navigation.goBack();
-    } catch (error) {
-      console.error("Erro ao remover medicamento:", error);
-      Alert.alert("Erro", "Não foi possível remover o medicamento.");
+    if (!utenteId) {
+      Alert.alert("Erro", "ID do utente não encontrado. Por favor, tente novamente.");
+      return;
     }
+
+    Alert.alert(
+      "Confirmar Remoção",
+      "Tem certeza que deseja remover este medicamento?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Remover",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Primeiro, buscar o documento do utente usando uma query
+              const utenteQuery = query(
+                collection(LarApp_db, "utentes"),
+                where("id", "==", utenteId)
+              );
+              const utenteSnapshot = await getDocs(utenteQuery);
+
+              if (utenteSnapshot.empty) {
+                Alert.alert("Erro", "Utente não encontrado. Por favor, tente novamente.");
+                return;
+              }
+
+              const utenteDoc = utenteSnapshot.docs[0];
+              const utenteRef = doc(LarApp_db, "utentes", utenteDoc.id);
+
+              const novosMedicamentos = medicamentosAtuais.filter(
+                (med) => med.id !== medicamentoId
+              );
+
+              await updateDoc(utenteRef, {
+                medicamentos: novosMedicamentos,
+              });
+
+              Alert.alert("Sucesso", "Medicamento removido com sucesso!");
+              onUpdate && onUpdate();
+              navigation.goBack();
+            } catch (error) {
+              console.error("Erro ao remover medicamento:", error);
+              Alert.alert(
+                "Erro", 
+                "Não foi possível remover o medicamento. Por favor, verifique sua conexão e tente novamente."
+              );
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderMedicamentoAtual = ({ item }) => (
@@ -180,24 +280,48 @@ export default function AdicionarMedicacaoUtente({ route, navigation }) {
             selectedValue={medicamentoSelecionado}
             onValueChange={(itemValue) => setMedicamentoSelecionado(itemValue)}
             style={styles.picker}
+            itemStyle={styles.pickerItem}
+            mode="dropdown"
           >
-            <Picker.Item label="Selecione um medicamento" value="" />
+            <Picker.Item 
+              label="Selecione um medicamento" 
+              value="" 
+              color="#666"
+            />
             {medicamentos.map((med) => (
               <Picker.Item
                 key={med.id}
                 label={`${med.nome} - ${med.dosagem}`}
                 value={med.id}
+                color="#333"
               />
             ))}
           </Picker>
         </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Horário (ex: 8h, 12h, 20h)"
-          value={horario}
-          onChangeText={setHorario}
-        />
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={horario}
+            onValueChange={(itemValue) => setHorario(itemValue)}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
+            mode="dropdown"
+          >
+            <Picker.Item 
+              label="Selecione o horário" 
+              value="" 
+              color="#666"
+            />
+            {horariosDisponiveis.map((hora) => (
+              <Picker.Item
+                key={hora}
+                label={hora}
+                value={hora}
+                color="#333"
+              />
+            ))}
+          </Picker>
+        </View>
 
         <TouchableOpacity
           style={styles.addButton}
@@ -284,8 +408,31 @@ const styles = StyleSheet.create({
     borderColor: "#e0e0e0",
     borderRadius: 10,
     marginBottom: 15,
+    backgroundColor: "#fff",
+    ...Platform.select({
+      ios: {
+        height: 50,
+        justifyContent: 'center',
+      },
+      android: {
+        height: 50,
+      }
+    })
   },
   picker: {
+    ...Platform.select({
+      ios: {
+        height: 50,
+        width: '100%',
+      },
+      android: {
+        height: 50,
+      }
+    })
+  },
+  pickerItem: {
+    fontSize: 16,
+    color: '#333',
     height: 50,
   },
   input: {

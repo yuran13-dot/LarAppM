@@ -1,16 +1,42 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
+  ActivityIndicator,
+  StatusBar,
+  SafeAreaView,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
+import { useSchedule } from "../../hooks/useSchedule";
 
 export default function LarScreen() {
   const navigation = useNavigation();
+  const { getAtividadesByDate } = useSchedule();
+  const [todayActivities, setTodayActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTodayActivities = async () => {
+      try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const atividades = await getAtividadesByDate(today, tomorrow);
+        setTodayActivities(atividades);
+      } catch (error) {
+        console.error('Erro ao buscar atividades de hoje:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTodayActivities();
+  }, []);
 
   const navigateToMeds = () => {
     navigation.navigate("MedsScreen");
@@ -21,147 +47,135 @@ export default function LarScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" />
       <View style={styles.header}>
         <Text style={styles.title}>Gestão do Lar</Text>
+        <Text style={styles.subtitle}>Bem-vindo ao seu painel de controle</Text>
       </View>
 
-      <View style={styles.gridContainer}>
-        <TouchableOpacity style={styles.card}>
-          <Icon name="people-outline" size={32} color="#007bff" />
-          <Text style={styles.cardText}>Capacidade Total</Text>
-          <Text style={styles.cardNumber}>50</Text>
-        </TouchableOpacity>
+      <View style={styles.container}>
+        <View style={styles.contentContainer}>
+          <View style={styles.gridContainer}>
+            <TouchableOpacity
+              style={[styles.card, styles.cardElevated, { backgroundColor: "#e8f4ff" }]}
+              onPress={navigateToMeds}
+            >
+              <View style={styles.cardIconContainer}>
+                <Icon name="medkit-outline" size={32} color="#007bff" />
+              </View>
+              <Text style={styles.cardText}>Medicamentos</Text>
+              <Text style={styles.cardNumber}>Stock</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card}>
-          <Icon name="bed-outline" size={32} color="#28a745" />
-          <Text style={styles.cardText}>Vagas Disponíveis</Text>
-          <Text style={styles.cardNumber}>8</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.card, styles.cardElevated, { backgroundColor: "#fff3e0" }]}
+              onPress={navigateToMedicacaoUtentes}
+            >
+              <View style={styles.cardIconContainer}>
+                <Icon name="fitness-outline" size={32} color="#ff9800" />
+              </View>
+              <Text style={styles.cardText}>Medicação</Text>
+              <Text style={styles.cardNumber}>Utentes</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.card, { backgroundColor: "#e8f4ff" }]}
-          onPress={navigateToMeds}
-        >
-          <Icon name="medkit-outline" size={32} color="#007bff" />
-          <Text style={styles.cardText}>Medicamentos</Text>
-          <Text style={styles.cardNumber}>Stock</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.card, { backgroundColor: "#fff3e0" }]}
-          onPress={navigateToMedicacaoUtentes}
-        >
-          <Icon name="fitness-outline" size={32} color="#ff9800" />
-          <Text style={styles.cardText}>Medicação</Text>
-          <Text style={styles.cardNumber}>Utentes</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card}>
-          <Icon name="calendar-outline" size={32} color="#ffc107" />
-          <Text style={styles.cardText}>Atividades Hoje</Text>
-          <Text style={styles.cardNumber}>5</Text>
-        </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.card, styles.cardElevated]}
+              onPress={() => navigation.navigate("AtividadesScreen")}
+            >
+              <View style={styles.cardIconContainer}>
+                <Icon name="calendar-outline" size={32} color="#ffc107" />
+              </View>
+              <Text style={styles.cardText}>Atividades Hoje</Text>
+              {loading ? (
+                <ActivityIndicator size="small" color="#ffc107" />
+              ) : (
+                <Text style={styles.cardNumber}>{todayActivities.length}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
-
-      <View style={styles.menuSection}>
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="settings-outline" size={24} color="#007bff" />
-          <Text style={styles.menuText}>Configurações do Lar</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="document-text-outline" size={24} color="#007bff" />
-          <Text style={styles.menuText}>Relatórios</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="cash-outline" size={24} color="#007bff" />
-          <Text style={styles.menuText}>Gestão Financeira</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Icon name="nutrition-outline" size={24} color="#007bff" />
-          <Text style={styles.menuText}>Cardápio</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#007bff',
+  },
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
   },
   header: {
     padding: 20,
-    paddingTop: 60,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    paddingBottom: 15,
+    backgroundColor: '#007bff',
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#333",
+    color: "#fff",
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#fff",
+    opacity: 0.8,
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
   },
   gridContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    padding: 10,
+    padding: 15,
     justifyContent: "space-between",
   },
   card: {
     width: "48%",
     backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 10,
+    padding: 15,
+    borderRadius: 15,
     marginBottom: 15,
     alignItems: "center",
+  },
+  cardElevated: {
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
     elevation: 5,
   },
+  cardIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#f8f9fa",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   cardText: {
-    marginTop: 10,
-    fontSize: 16,
+    marginTop: 5,
+    fontSize: 14,
     color: "#666",
     textAlign: "center",
+    fontWeight: "500",
   },
   cardNumber: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#333",
     marginTop: 5,
-  },
-  menuSection: {
-    padding: 15,
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  menuText: {
-    marginLeft: 15,
-    fontSize: 16,
-    color: "#333",
   },
 });
